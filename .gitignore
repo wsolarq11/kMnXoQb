@@ -6,8 +6,8 @@ config/config.json
 config/config.json.bak
 *.bak
 
-# Binary archive
-_retired.zip
+# Archive (retired/version history binaries, kept local only)
+archive/*.zip
 
 # Build artifacts
 artifacts/

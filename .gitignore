@@ -10,4 +10,5 @@ config/config.json.bak
 archive/*.zip
 
 # Build artifacts
+build/
 artifacts/

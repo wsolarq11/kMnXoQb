@@ -15,7 +15,7 @@ export component LaunchCard {
     callback delete-clicked(int);
     callback selected-toggled(int, bool);
 
-    min-width: Theme.card-width;
+    min-width: 280px;
     min-height: Theme.card-min-height;
 
     Rectangle {
@@ -44,14 +44,14 @@ export component LaunchCard {
                 // 编辑按钮（hover 显示）
                 Button {
                     text: "Edit";
-                    visible: false; // hover 时显示（由 C++ 层控制）
+                    visible: touch-area.has-hover;
                     clicked => { edit-clicked(item-index); }
                 }
 
                 // 删除按钮（hover 显示）
                 Button {
                     text: "Del";
-                    visible: false;
+                    visible: touch-area.has-hover;
                     clicked => { delete-clicked(item-index); }
                 }
 
@@ -95,9 +95,8 @@ export component LaunchCard {
                 }
             }
         }
-
-        // 点击卡片触发启动
-        TouchArea {
+// 点击卡片触发启动（命名供 hover 状态引用）
+        touch-area := TouchArea {
             clicked => { launched(item-index); }
         }
     }

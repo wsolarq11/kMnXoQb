@@ -125,11 +125,10 @@ auto WinTerminalLauncher::launch(const std::string& directory, const std::string
     return handle;
 }
 
-// 工厂方法
-auto TerminalLauncher::create() -> std::unique_ptr<TerminalLauncher> {
-    return std::make_unique<WinTerminalLauncher>();
-}
-
 } // namespace pal
+
+auto create_win_launcher() -> std::unique_ptr<pal::TerminalLauncher> {
+    return std::make_unique<pal::WinTerminalLauncher>();
+}
 
 #endif // _WIN32

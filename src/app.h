@@ -35,6 +35,10 @@ private:
     void on_dialog_cancel();
     void on_dialog_browse();
     void on_item_selected_toggled(int index, bool selected);
+    void on_confirm_launch();
+    void on_cancel_launch();
+    void on_toggle_theme();
+    void launch_item(int index);
     void update_card_model();
 
     slint::ComponentHandle<MainWindow> window_;
@@ -45,4 +49,7 @@ private:
     std::vector<core::LaunchItem> items_;
     core::AppSettings settings_;
     int current_edit_index_ = -1;
+    int pending_launch_index_ = -1;
+    std::shared_ptr<slint::VectorModel<LaunchCardData>> card_model_;
+    std::string search_query_;
 };

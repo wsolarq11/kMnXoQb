@@ -10,6 +10,7 @@ export struct LaunchCardData {
     cmd: string,
     is-selected: bool,
     is-dangerous: bool,
+    original-index: int,
 }
 
 export component MainWindow inherits Window {
@@ -23,6 +24,7 @@ export component MainWindow inherits Window {
     in-out property <string> stat-recent;
     in-out property <bool> confirm-enabled;
     in-out property <int> selected-count;
+    in-out property <bool> is-dark;
 
     // 对话框状态
     in-out property <bool> dialog-visible;
@@ -36,6 +38,14 @@ export component MainWindow inherits Window {
     // 搜索
     in-out property <string> search-query;
 
+    // 确认对话框状态
+    in-out property <bool> confirm-dialog-visible;
+    in-out property <string> confirm-item-name;
+    in-out property <bool> confirm-is-dangerous;
+
+    // 状态栏
+    in-out property <string> status-text;
+
     // 回调（由 C++ 层绑定）
     callback toggle-confirm(bool);
     callback show-add-dialog();
@@ -45,14 +55,25 @@ export component MainWindow inherits Window {
     callback item-edit-clicked(int);
     callback item-delete-clicked(int);
     callback item-selected-toggled(int, bool);
+    callback toggle-theme();
     callback dialog-save(string, string, string, bool);
     callback dialog-delete();
     callback dialog-cancel();
     callback dialog-browse();
     callback search-changed(string);
+    callback confirm-launch();
+    callback cancel-launch();
 
     // 卡片模型（C++ 层通过 VectorModel 绑定实际数据）
     in property <[LaunchCardData]> items: [{ name: "Loading...", dir: "", cmd: "", is-selected: false, is-dangerous: false }];
+
+    // 全局键盘快捷键
+    FocusScope {
+        key-pressed(event) => {
+            if (event.modifiers.control && (event.text == "a" || event.text == "A")) { toggle-select-all(selected-count == 0); accept; }
+            reject;
+        }
+    }
 
     // 根容器，包含主布局和对话框遮罩
     Rectangle {
@@ -95,6 +116,9 @@ export component MainWindow inherits Window {
                         Text { text: "Confirm Launch"; font-size: 16px; color: Theme.text-secondary; vertical-alignment: center; }
                         CheckBox { checked: confirm-enabled; toggled => { toggle-confirm(self.checked); } }
                     }
+
+                    // 主题切换按钮
+                    Button { text: is-dark ? "Light" : "Dark"; clicked => { toggle-theme(); } }
 
                     // 新建按钮
                     Button { text: "+ New"; clicked => { show-add-dialog(); } }
@@ -161,7 +185,7 @@ export component MainWindow inherits Window {
                 Button { text: "Launch Selected"; enabled: selected-count > 0; clicked => { launch-selected(); } }
             }
 
-            // ── Card Grid ──
+            // ── Card Grid（WrapLayout 多列自适应）──
             ScrollView {
                 VerticalLayout {
                     padding-left: 28px;
@@ -172,10 +196,11 @@ export component MainWindow inherits Window {
                     for item in items: LaunchCard {
                         item-name: item.name; item-dir: item.dir; item-cmd: item.cmd;
                         is-selected: item.is-selected; is-dangerous: item.is-dangerous;
-                        launched(index) => { item-launched(index); }
-                        edit-clicked(index) => { item-edit-clicked(index); }
-                        delete-clicked(index) => { item-delete-clicked(index); }
-                        selected-toggled(index, checked) => { item-selected-toggled(index, checked); }
+                        item-index: item.original-index;
+                        launched(index) => { item-launched(item.original-index); }
+                        edit-clicked(index) => { item-edit-clicked(item.original-index); }
+                        delete-clicked(index) => { item-delete-clicked(item.original-index); }
+                        selected-toggled(index, checked) => { item-selected-toggled(item.original-index, checked); }
                     }
                 }
             }
@@ -189,7 +214,7 @@ export component MainWindow inherits Window {
                     padding-right: 18px;
                     padding-top: 14px;
                     padding-bottom: 14px;
-                    Text { text: "Ready"; font-size: 16px; color: Theme.text-tertiary; font-family: "Cascadia Code, Consolas, monospace"; }
+                    Text { text: status-text; font-size: 16px; color: Theme.text-tertiary; font-family: "Cascadia Code, Consolas, monospace"; }
                 }
             }
         }
@@ -213,7 +238,67 @@ export component MainWindow inherits Window {
                 browse-clicked => { dialog-browse(); }
             }
         }
-    }
+
+        // ── Confirm Dialog Overlay ──
+        if confirm-dialog-visible: Rectangle {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            TouchArea {
+                width: 100%;
+                height: 100%;
+                clicked => { cancel-launch(); }
+            }
+            HorizontalLayout {
+                alignment: center;
+
+                Rectangle {
+                    background: Theme.surface;
+                    border-radius: Theme.radius;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    min-width: 400px;
+
+                    VerticalLayout {
+                    padding: 32px;
+                    spacing: Theme.spacing-lg;
+
+                    Text {
+                        text: "Confirm Launch";
+                        font-size: 24px;
+                        font-weight: 600;
+                        color: Theme.text;
+                    }
+
+                    Text {
+                        text: confirm-item-name;
+                        font-size: Theme.font-size;
+                        font-weight: 500;
+                        color: confirm-is-dangerous ? Theme.danger : Theme.text;
+                    }
+
+                    Text {
+                        text: "This command requires confirmation.";
+                        font-size: Theme.font-size-sm;
+                        color: Theme.text-secondary;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 10px;
+                        Button {
+                            text: "Cancel";
+                            horizontal-stretch: 1;
+                            clicked => { cancel-launch(); }
+                        }
+                        Button {
+                            text: "Launch";
+                            horizontal-stretch: 1;
+                            clicked => { confirm-launch(); }
+                        }
+                    }
+                }
+            }
 }
-
-
+}
+}
+}

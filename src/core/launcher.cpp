@@ -38,7 +38,8 @@ auto Launcher::launch_single(const LaunchItem& item, bool skip_confirm) -> std::
         return std::unexpected(validation.error());
     }
 
-    // ponytail: 当前返回空成功，Phase 3 集成 PAL::TerminalLauncher 实现真正进程启动
+    // 实际进程启动由 App 层通过 pal::TerminalLauncher 统一调度
+    // 此处仅进行校验并返回成功
     (void)skip_confirm;
     return {};
 }

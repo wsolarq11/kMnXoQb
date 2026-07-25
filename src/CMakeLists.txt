@@ -13,6 +13,9 @@ target_link_libraries(core_lib PUBLIC glaze::glaze)
 add_library(platform_lib STATIC
     platform/path_resolver.cpp
     platform/terminal_launcher_win.cpp
+    platform/terminal_launcher_macos.cpp
+    platform/terminal_launcher_linux.cpp
+    platform/terminal_launcher_factory.cpp
     platform/single_instance.cpp
 )
 

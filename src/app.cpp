@@ -4,6 +4,8 @@
 
 #include <glaze/glaze.hpp>
 #include <algorithm>
+#include <expected>
+#include <filesystem>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -61,14 +63,60 @@ void App::refresh_ui() {
     window_->set_stat_recent(slint::SharedString(
         !settings_.launch_history.empty() ? settings_.launch_history.front() : ""));
     window_->set_confirm_enabled(settings_.confirm_enabled);
+    window_->set_is_dark(settings_.theme == "dark");
     window_->set_selected_count(static_cast<int>(selected_.count()));
     window_->set_is_editing(false);
     window_->set_dialog_visible(false);
+    window_->set_status_text(slint::SharedString(
+        settings_.launch_history.empty()
+            ? "Ready"
+            : "Last launched: " + settings_.launch_history.front()));
     update_card_model();
 }
-
 void App::update_card_model() {
-    // ponytail: Phase 4 实现完整 VectorModel 绑定
+    if (!card_model_) {
+        card_model_ = std::make_shared<slint::VectorModel<LaunchCardData>>();
+        window_->set_items(card_model_);
+    }
+
+    // 清空现有数据（从后往前逐个删除）
+    while (card_model_->row_count() > 0) {
+        card_model_->erase(card_model_->row_count() - 1);
+    }
+
+    // 搜索词小写化（大小写不敏感匹配）
+    std::string query_lower;
+    query_lower.resize(search_query_.size());
+    std::transform(search_query_.begin(), search_query_.end(),
+                   query_lower.begin(), ::tolower);
+
+    for (size_t i = 0; i < items_.size(); ++i) {
+        const auto& item = items_[i];
+
+        // 搜索过滤：匹配 name / directory / command
+        if (!query_lower.empty()) {
+            auto contains = [&](const std::string& field) -> bool {
+                std::string field_lower;
+                field_lower.resize(field.size());
+                std::transform(field.begin(), field.end(),
+                               field_lower.begin(), ::tolower);
+                return field_lower.find(query_lower) != std::string::npos;
+            };
+
+            if (!contains(item.name) && !contains(item.directory) && !contains(item.command)) {
+                continue;
+            }
+        }
+
+        LaunchCardData data;
+        data.name = slint::SharedString(item.name);
+        data.dir = slint::SharedString(item.directory);
+        data.cmd = slint::SharedString(item.command);
+        data.is_selected = selected_.is_selected(item.id);
+        data.is_dangerous = launcher_->is_dangerous(item.command);
+        data.original_index = static_cast<int>(i);
+        card_model_->push_back(std::move(data));
+    }
 }
 
 void App::bind_callbacks() {
@@ -92,6 +140,9 @@ void App::bind_callbacks() {
     window_->on_search_changed([this](slint::SharedString query) {
         on_search(std::string(query));
     });
+    window_->on_confirm_launch([this]() { on_confirm_launch(); });
+    window_->on_cancel_launch([this]() { on_cancel_launch(); });
+    window_->on_toggle_theme([this]() { on_toggle_theme(); });
 }
 
 void App::on_toggle_confirm(bool enabled) {
@@ -114,13 +165,42 @@ void App::on_launch(int index) {
     if (index < 0 || index >= static_cast<int>(items_.size())) return;
     const auto& item = items_[index];
 
+    // 需要确认时弹窗，不直接启动
     if (settings_.confirm_enabled && (item.confirm || launcher_->is_dangerous(item.command))) {
-        // TODO: Phase 4 集成 Slint 确认对话框
+        pending_launch_index_ = index;
+        window_->set_confirm_item_name(slint::SharedString(item.name));
+        window_->set_confirm_is_dangerous(launcher_->is_dangerous(item.command));
+        window_->set_confirm_dialog_visible(true);
+        return;
     }
 
-    // 使用 TerminalLauncher 真正启动进程
-    auto terminal = pal::TerminalLauncher::create();
-    auto result = terminal->launch(item.directory, item.command);
+    // 不需要确认，直接启动
+    launch_item(index);
+}
+
+void App::launch_item(int index) {
+    if (index < 0 || index >= static_cast<int>(items_.size())) return;
+    const auto& item = items_[index];
+
+    // 运行时校验目录是否存在
+    if (!std::filesystem::exists(item.directory)) {
+        window_->set_status_text(slint::SharedString(
+            "Directory not found: " + item.directory));
+        return;
+    }
+
+    auto create_and_launch = [&](const std::string& dir, const std::string& cmd) {
+        auto terminal = pal::TerminalLauncher::create();
+        return terminal->launch(dir, cmd);
+    };
+
+    std::expected<pal::ProcessHandle, core::Error> result;
+    if (item.terminal.has_value() && !item.terminal->empty()) {
+        // 自定义终端覆盖
+        result = create_and_launch(item.directory, item.terminal.value() + " " + item.command);
+    } else {
+        result = create_and_launch(item.directory, item.command);
+    }
     if (result) {
         settings_.launch_history.erase(
             std::remove(settings_.launch_history.begin(),
@@ -132,6 +212,33 @@ void App::on_launch(int index) {
         save_config();
         refresh_ui();
     }
+}
+
+void App::on_confirm_launch() {
+    window_->set_confirm_dialog_visible(false);
+    if (pending_launch_index_ >= 0) {
+        int idx = pending_launch_index_;
+        pending_launch_index_ = -1;
+        launch_item(idx);
+    }
+}
+void App::on_cancel_launch() {
+    window_->set_confirm_dialog_visible(false);
+    pending_launch_index_ = -1;
+}
+
+void App::on_toggle_theme() {
+    // 循环切换：light -> dark -> system(light)
+    if (settings_.theme == "light") {
+        settings_.theme = "dark";
+    } else if (settings_.theme == "dark") {
+        settings_.theme = "system";
+    } else {
+        settings_.theme = "light";
+    }
+    bool is_dark = (settings_.theme == "dark");
+    window_->set_is_dark(is_dark);
+    save_config();
 }
 
 void App::on_edit_item(int index) {
@@ -156,20 +263,34 @@ void App::on_delete_item(int index) {
 }
 
 void App::on_launch_selected() {
-    auto terminal = pal::TerminalLauncher::create();
-    // 逐个启动选中项
     auto ids = selected_.selected_ids();
-    int ok = 0, fail = 0;
+    int launched = 0;
     for (const auto& id : ids) {
         auto it = std::find_if(items_.begin(), items_.end(),
             [&id](const auto& item) { return item.id == id; });
-        if (it == items_.end()) { fail++; continue; }
-        auto result = terminal->launch(it->directory, it->command);
-        if (result) ok++; else fail++;
+        if (it == items_.end()) continue;
+        int idx = static_cast<int>(std::distance(items_.begin(), it));
+        const auto& item = items_[idx];
+
+        // 逐项检查确认（通过 on_launch 的统一确认逻辑）
+        if (settings_.confirm_enabled && (item.confirm || launcher_->is_dangerous(item.command))) {
+            pending_launch_index_ = idx;
+            window_->set_confirm_item_name(slint::SharedString(item.name));
+            window_->set_confirm_is_dangerous(launcher_->is_dangerous(item.command));
+            window_->set_confirm_dialog_visible(true);
+            // 等待用户确认，不继续后续启动
+            return;
+        }
+
+        launch_item(idx);
+        launched++;
     }
-    selected_.deselect_all();
-    save_config();
-    refresh_ui();
+
+    if (launched > 0) {
+        selected_.deselect_all();
+        save_config();
+        refresh_ui();
+    }
 }
 
 void App::on_toggle_select_all(bool all) {
@@ -177,9 +298,9 @@ void App::on_toggle_select_all(bool all) {
     else selected_.deselect_all();
     refresh_ui();
 }
-
 void App::on_search(const std::string& query) {
-    (void)query;
+    search_query_ = query;
+    update_card_model();
 }
 
 void App::on_dialog_save(const std::string& name, const std::string& dir,
@@ -252,8 +373,39 @@ void App::on_dialog_browse() {
         }
         pfd->Release();
     }
+#elif defined(__APPLE__)
+    // macOS: 使用 NSOpenPanel (通过 osascript)
+    FILE* pipe = popen(
+        "osascript -e 'tell app \"Finder\" to POSIX path of "
+        "(choose folder with prompt \"Select directory\")' 2>/dev/null", "r");
+    if (pipe) {
+        char buf[4096] = {};
+        if (fgets(buf, sizeof(buf), pipe) != nullptr) {
+            std::string dir(buf);
+            while (!dir.empty() && (dir.back() == '\n' || dir.back() == '\r'))
+                dir.pop_back();
+            if (!dir.empty())
+                window_->set_edit_dir(slint::SharedString(dir));
+        }
+        pclose(pipe);
+    }
 #else
-    // TODO: Phase 5 实现 macOS/Linux 目录对话框
+    // Linux: 尝试 zenity / kdialog / Xdialog
+    FILE* pipe = popen(
+        "zenity --file-selection --directory 2>/dev/null || "
+        "kdialog --getexistingdirectory . 2>/dev/null || "
+        "Xdialog --dirstdout . 2>/dev/null", "r");
+    if (pipe) {
+        char buf[4096] = {};
+        if (fgets(buf, sizeof(buf), pipe) != nullptr) {
+            std::string dir(buf);
+            while (!dir.empty() && (dir.back() == '\n' || dir.back() == '\r'))
+                dir.pop_back();
+            if (!dir.empty())
+                window_->set_edit_dir(slint::SharedString(dir));
+        }
+        pclose(pipe);
+    }
 #endif
 }
 

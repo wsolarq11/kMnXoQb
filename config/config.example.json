@@ -1,0 +1,34 @@
+[
+  {
+    "name": "snow-example",
+    "directory": "D:\\projects\\your-project",
+    "command": "snow",
+    "confirm": false,
+    "id": "snow-example",
+    "selected": false
+  },
+  {
+    "name": "codex-example",
+    "directory": "D:\\projects\\your-project",
+    "command": "codex --enable goals --dangerously-bypass-approvals-and-sandbox",
+    "confirm": true,
+    "id": "codex-example",
+    "selected": false
+  },
+  {
+    "name": "claude-example",
+    "directory": "D:\\projects\\your-project",
+    "command": "claude --dangerously-skip-permissions",
+    "confirm": true,
+    "id": "claude-example",
+    "selected": false
+  },
+  {
+    "name": "opencode-example",
+    "directory": "D:\\projects\\your-project",
+    "command": "opencode",
+    "confirm": false,
+    "id": "opencode-example",
+    "selected": false
+  }
+]

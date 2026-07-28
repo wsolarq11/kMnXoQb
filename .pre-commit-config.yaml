@@ -1,0 +1,28 @@
+# Launchpad pre-commit hooks
+# 目标: 提交前自动执行安全规范检查、格式化和轻量分析
+# 安装: pip install pre-commit && pre-commit install
+
+repos:
+  # --- 基础文件检查 ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # --- 安全扫描: 禁止 popen/system/字符串拼接命令 ---
+  - repo: local
+    hooks:
+      - id: forbid-popen
+        name: forbid popen/system calls
+        entry: '::popen\(|::system\(|::pclose\('
+        language: pygrep
+        types: [c++]
+        exclude: '\.clang-tidy$'
+        fail_fast: true

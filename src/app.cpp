@@ -1,34 +1,61 @@
 #include "app.h"
+#include "core/launch_plan_builder.h"
 #include "platform/terminal_launcher.h"
 #include "platform/single_instance.h"
+#include "platform/theme_detector.h"
+#include "core/logger.h"
+#include "core/is_dangerous.h"
 
 #include <glaze/glaze.hpp>
 #include <algorithm>
 #include <expected>
 #include <filesystem>
+#include <thread>
+#include <array>
+#include <cstring>
+#include <reproc++/reproc.hpp>
 
 #ifdef _WIN32
 #include <windows.h>
 #include <shlobj.h>  // SHBrowseForFolder
 #endif
 
+namespace {
+
+// 缓存 ThemeDetector 实例，避免多次创建。
+auto& get_theme_detector() {
+    static auto detector = pal::ThemeDetector::create();
+    return detector;
+}
+
+// 解析主题字符串为 Theme 枚举，替代 magic_enum。
+auto parse_theme(const std::string& s) -> core::Theme {
+    if (s == "dark") return core::Theme::dark;
+    if (s == "light") return core::Theme::light;
+    return core::Theme::system;
+}
+
+} // anonymous namespace
+
 App::App(slint::ComponentHandle<MainWindow> window)
     : window_(std::move(window)) {}
 
 int App::run() {
     // 单实例检测
-    pal::SingleInstance instance;
-    if (!instance.is_only_instance()) {
+    auto instance = pal::SingleInstance::create();
+    if (!instance->is_only_instance()) {
         return 0;  // 已有实例运行，静默退出
     }
 
-    resolver_ = std::make_unique<pal::PathResolver>();
+    resolver_ = pal::PathResolver::create();
     auto config_dir = resolver_->config_directory();
     if (config_dir) {
+        core::Logger::init(config_dir->string());
         config_ = std::make_unique<core::ConfigIO>(*config_dir);
         launcher_ = std::make_unique<core::Launcher>(config_dir->string());
     }
 
+    CORE_LOG_INFO("WT Launcher started");
     load_config();
     bind_callbacks();
     refresh_ui();
@@ -43,6 +70,9 @@ void App::load_config() {
     if (items) {
         items_ = std::move(*items);
         selected_.load_from(items_);
+        CORE_LOG_INFO("Loaded {} items from config", items_.size());
+    } else {
+        CORE_LOG_ERROR("load_config: read_items failed");
     }
 
     auto settings = config_->read_settings();
@@ -54,8 +84,14 @@ void App::load_config() {
 void App::save_config() {
     if (!config_) return;
     selected_.save_to(items_);
-    config_->write_items(items_);
-    config_->write_settings(settings_);
+    if (auto r = config_->write_items(items_); !r) {
+        CORE_LOG_ERROR("save_config: write_items failed: {} (code={})",
+            r.error().message(), static_cast<int>(r.error().code()));
+    }
+    if (auto r = config_->write_settings(settings_); !r) {
+        CORE_LOG_ERROR("save_config: write_settings failed: {} (code={})",
+            r.error().message(), static_cast<int>(r.error().code()));
+    }
 }
 
 void App::refresh_ui() {
@@ -63,7 +99,9 @@ void App::refresh_ui() {
     window_->set_stat_recent(slint::SharedString(
         !settings_.launch_history.empty() ? settings_.launch_history.front() : ""));
     window_->set_confirm_enabled(settings_.confirm_enabled);
-    window_->set_is_dark(settings_.theme == "dark");
+    auto theme = parse_theme(settings_.theme);
+    window_->set_is_dark(theme == core::Theme::dark
+        || (theme == core::Theme::system && get_theme_detector()->is_system_dark()));
     window_->set_selected_count(static_cast<int>(selected_.count()));
     window_->set_is_editing(false);
     window_->set_dialog_visible(false);
@@ -113,7 +151,7 @@ void App::update_card_model() {
         data.dir = slint::SharedString(item.directory);
         data.cmd = slint::SharedString(item.command);
         data.is_selected = selected_.is_selected(item.id);
-        data.is_dangerous = launcher_->is_dangerous(item.command);
+        data.is_dangerous = core::is_dangerous(item.command);
         data.original_index = static_cast<int>(i);
         card_model_->push_back(std::move(data));
     }
@@ -166,10 +204,10 @@ void App::on_launch(int index) {
     const auto& item = items_[index];
 
     // 需要确认时弹窗，不直接启动
-    if (settings_.confirm_enabled && (item.confirm || launcher_->is_dangerous(item.command))) {
+    if (settings_.confirm_enabled && (item.confirm || core::is_dangerous(item.command))) {
         pending_launch_index_ = index;
         window_->set_confirm_item_name(slint::SharedString(item.name));
-        window_->set_confirm_is_dangerous(launcher_->is_dangerous(item.command));
+        window_->set_confirm_is_dangerous(core::is_dangerous(item.command));
         window_->set_confirm_dialog_visible(true);
         return;
     }
@@ -184,34 +222,67 @@ void App::launch_item(int index) {
 
     // 运行时校验目录是否存在
     if (!std::filesystem::exists(item.directory)) {
+        CORE_LOG_ERROR("Directory not found: {}", item.directory);
         window_->set_status_text(slint::SharedString(
             "Directory not found: " + item.directory));
         return;
     }
 
-    auto create_and_launch = [&](const std::string& dir, const std::string& cmd) {
-        auto terminal = pal::TerminalLauncher::create();
-        return terminal->launch(dir, cmd);
-    };
+    // 构造 LaunchPlan（纯数据，无字符串拼接）
+    auto plan_result = core::LaunchPlanBuilder::build(item);
+    if (!plan_result) {
+        CORE_LOG_ERROR("Build plan failed: {}", plan_result.error().message());
+        window_->set_status_text(slint::SharedString(
+            "Build plan failed: " + plan_result.error().message()));
+        return;
+    }
 
-    std::expected<pal::ProcessHandle, core::Error> result;
-    if (item.terminal.has_value() && !item.terminal->empty()) {
-        // 自定义终端覆盖
-        result = create_and_launch(item.directory, item.terminal.value() + " " + item.command);
-    } else {
-        result = create_and_launch(item.directory, item.command);
+    // 平台层填充 executable + args（纯逻辑，可在任意线程调用）
+    auto terminal = pal::TerminalLauncher::create();
+    auto populated = terminal->populate(std::move(*plan_result));
+    if (!populated) {
+        CORE_LOG_ERROR("Populate failed: {}", populated.error().message());
+        window_->set_status_text(slint::SharedString(
+            "Populate failed: " + populated.error().message()));
+        return;
     }
-    if (result) {
-        settings_.launch_history.erase(
-            std::remove(settings_.launch_history.begin(),
-                        settings_.launch_history.end(), item.name),
-            settings_.launch_history.end());
-        settings_.launch_history.insert(settings_.launch_history.begin(), item.name);
-        if (settings_.launch_history.size() > 10)
-            settings_.launch_history.resize(10);
-        save_config();
-        refresh_ui();
-    }
+
+    // 后台线程执行 launch（posix_spawn/CreateProcessW），避免阻塞 UI 线程。
+    // 结果通过 slint::invoke_from_event_loop 回 UI 线程更新状态。
+    std::string item_name = item.name;
+    auto plan = std::make_shared<core::LaunchPlan>(std::move(*populated));
+    auto launcher = std::move(terminal);
+    auto weak_self = weak_from_this();
+    std::jthread([weak_self, plan, launcher = std::move(launcher), item_name](std::stop_token st) {
+        auto result = launcher->launch(*plan);
+        if (st.stop_requested()) return;
+
+        auto self = weak_self.lock();
+        if (!self || st.stop_requested()) {
+            CORE_LOG_WARN("App destroyed before launch completed: {}", item_name);
+            return;
+        }
+        slint::invoke_from_event_loop([weak_self, result = std::move(result), item_name]() {
+            auto self = weak_self.lock();
+            if (!self) return;
+            if (result) {
+                CORE_LOG_INFO("Launch succeeded: {}", item_name);
+                self->settings_.launch_history.erase(
+                    std::remove(self->settings_.launch_history.begin(),
+                                self->settings_.launch_history.end(), item_name),
+                    self->settings_.launch_history.end());
+                self->settings_.launch_history.insert(self->settings_.launch_history.begin(), item_name);
+                if (self->settings_.launch_history.size() > 10)
+                    self->settings_.launch_history.resize(10);
+                self->save_config();
+                self->refresh_ui();
+            } else {
+                CORE_LOG_ERROR("Launch failed: {} - {}", item_name, result.error().message());
+                self->window_->set_status_text(slint::SharedString(
+                    "Launch failed: " + result.error().message()));
+            }
+        });
+    });
 }
 
 void App::on_confirm_launch() {
@@ -228,15 +299,16 @@ void App::on_cancel_launch() {
 }
 
 void App::on_toggle_theme() {
-    // 循环切换：light -> dark -> system(light)
-    if (settings_.theme == "light") {
-        settings_.theme = "dark";
-    } else if (settings_.theme == "dark") {
-        settings_.theme = "system";
-    } else {
-        settings_.theme = "light";
+    // 循环切换：light -> dark -> system
+    auto theme = parse_theme(settings_.theme);
+    switch (theme) {
+        case core::Theme::light: settings_.theme = "dark"; break;
+        case core::Theme::dark:  settings_.theme = "system"; break;
+        case core::Theme::system: settings_.theme = "light"; break;
     }
-    bool is_dark = (settings_.theme == "dark");
+    theme = parse_theme(settings_.theme);
+    bool is_dark = (theme == core::Theme::dark)
+        || (theme == core::Theme::system && get_theme_detector()->is_system_dark());
     window_->set_is_dark(is_dark);
     save_config();
 }
@@ -273,10 +345,10 @@ void App::on_launch_selected() {
         const auto& item = items_[idx];
 
         // 逐项检查确认（通过 on_launch 的统一确认逻辑）
-        if (settings_.confirm_enabled && (item.confirm || launcher_->is_dangerous(item.command))) {
+        if (settings_.confirm_enabled && (item.confirm || core::is_dangerous(item.command))) {
             pending_launch_index_ = idx;
             window_->set_confirm_item_name(slint::SharedString(item.name));
-            window_->set_confirm_is_dangerous(launcher_->is_dangerous(item.command));
+            window_->set_confirm_is_dangerous(core::is_dangerous(item.command));
             window_->set_confirm_dialog_visible(true);
             // 等待用户确认，不继续后续启动
             return;
@@ -305,7 +377,7 @@ void App::on_search(const std::string& query) {
 
 void App::on_dialog_save(const std::string& name, const std::string& dir,
                           const std::string& cmd, bool confirm) {
-    if (name.empty()) return;
+    if (name.empty() || cmd.empty()) return;
 
     core::LaunchItem item;
     item.name = name;
@@ -374,37 +446,54 @@ void App::on_dialog_browse() {
         pfd->Release();
     }
 #elif defined(__APPLE__)
-    // macOS: 使用 NSOpenPanel (通过 osascript)
-    FILE* pipe = popen(
-        "osascript -e 'tell app \"Finder\" to POSIX path of "
-        "(choose folder with prompt \"Select directory\")' 2>/dev/null", "r");
-    if (pipe) {
-        char buf[4096] = {};
-        if (fgets(buf, sizeof(buf), pipe) != nullptr) {
-            std::string dir(buf);
-            while (!dir.empty() && (dir.back() == '\n' || dir.back() == '\r'))
-                dir.pop_back();
-            if (!dir.empty())
-                window_->set_edit_dir(slint::SharedString(dir));
+    // macOS: 使用 NSOpenPanel (通过 osascript, reproc)
+    {
+        reproc::process process;
+        std::error_code ec = process.start({"/usr/bin/osascript", "-e",
+            "tell app \"Finder\" to POSIX path of (choose folder with prompt \"Select directory\")"});
+        if (!ec) {
+            std::array<char, 4096> buf{};
+            auto [bytes_read, read_ec] = process.read(reproc::stream::out, buf.data(), buf.size());
+            process.wait(reproc::infinite);
+            process.stop();
+            if (!read_ec && bytes_read > 0) {
+                std::string dir(buf.data(), static_cast<size_t>(bytes_read));
+                while (!dir.empty() && (dir.back() == '\n' || dir.back() == '\r'))
+                    dir.pop_back();
+                if (!dir.empty())
+                    window_->set_edit_dir(slint::SharedString(dir));
+            }
         }
-        pclose(pipe);
     }
 #else
-    // Linux: 尝试 zenity / kdialog / Xdialog
-    FILE* pipe = popen(
-        "zenity --file-selection --directory 2>/dev/null || "
-        "kdialog --getexistingdirectory . 2>/dev/null || "
-        "Xdialog --dirstdout . 2>/dev/null", "r");
-    if (pipe) {
-        char buf[4096] = {};
-        if (fgets(buf, sizeof(buf), pipe) != nullptr) {
-            std::string dir(buf);
-            while (!dir.empty() && (dir.back() == '\n' || dir.back() == '\r'))
-                dir.pop_back();
-            if (!dir.empty())
-                window_->set_edit_dir(slint::SharedString(dir));
+    // Linux: 尝试 zenity / kdialog / Xdialog (使用 reproc)
+    {
+        const char* const dialog_candidates[] = {"zenity", "kdialog", "Xdialog"};
+        for (const char* bin : dialog_candidates) {
+            reproc::process process;
+            std::error_code ec;
+            if (std::strcmp(bin, "zenity") == 0)
+                ec = process.start({bin, "--file-selection", "--directory"});
+            else if (std::strcmp(bin, "kdialog") == 0)
+                ec = process.start({bin, "--getexistingdirectory", "."});
+            else
+                ec = process.start({bin, "--dirstdout", "."});
+            if (ec) continue;
+
+            std::array<char, 4096> buf{};
+            auto [bytes_read, read_ec] = process.read(reproc::stream::out, buf.data(), buf.size());
+            process.wait(reproc::infinite);
+            process.stop();
+            if (!read_ec && bytes_read > 0) {
+                std::string dir(buf.data(), static_cast<size_t>(bytes_read));
+                while (!dir.empty() && (dir.back() == '\n' || dir.back() == '\r'))
+                    dir.pop_back();
+                if (!dir.empty()) {
+                    window_->set_edit_dir(slint::SharedString(dir));
+                    break;
+                }
+            }
         }
-        pclose(pipe);
     }
 #endif
 }

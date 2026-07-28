@@ -12,3 +12,31 @@ archive/*.zip
 # Build artifacts
 build/
 artifacts/
+
+# Cargo/Rust build cache (CARGO_HOME)
+.cargo-cache/
+
+# CPM source cache
+.cpm-cache/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# AI agent local config (per-developer, not shared)
+.agents/
+.claude/
+.codex/
+
+# Runtime output logs
+wt-last-err.txt
+wt-last-out.txt
+*.lnk
+
+# OS files
+.DS_Store
+Thumbs.db

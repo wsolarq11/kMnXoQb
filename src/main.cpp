@@ -3,6 +3,6 @@
 
 int main() {
     auto main_window = MainWindow::create();
-    App app(main_window);
-    return app.run();
+    auto app = std::make_shared<App>(main_window);
+    return app->run();
 }

@@ -8,6 +8,9 @@
 
 namespace core {
 
+// 主题枚举（light / dark / system）
+enum class Theme { light, dark, system };
+
 struct LaunchItem {
     std::string name;
     std::string directory;
@@ -68,10 +71,15 @@ struct glz::meta<core::WindowState> {
 template<>
 struct glz::meta<core::AppSettings> {
     using T = core::AppSettings;
-    static constexpr auto value = glz::object(
+    // modify 系统提供向后兼容：
+    // - "confirm_enabled" 是新 key（蛇形，与 struct 成员名一致，单一源）
+    // - "confirmEnabled" 是旧 key（驼峰，来自旧 HTA settings.json），alias 指向同一成员
+    // 读入任一 key 均生效；写出统一用 "confirm_enabled"
+    static constexpr auto modify = glz::object(
         "confirm_enabled", &T::confirm_enabled,
-        "theme", &T::theme,
-        "launch_history", &T::launch_history,
-        "window_state", &T::window_state
+        "confirmEnabled",  [](auto& s) -> auto& { return s.confirm_enabled; },
+        "theme",           &T::theme,
+        "launch_history",  &T::launch_history,
+        "window_state",    &T::window_state
     );
 };

@@ -7,9 +7,20 @@
 #include <climits>
 #endif
 
-namespace pal {
+namespace {
 
-PathResolver::PathResolver() {
+class PlatformPathResolver : public pal::PathResolver {
+public:
+    PlatformPathResolver();
+
+    auto config_directory() -> std::expected<std::filesystem::path, core::Error> override;
+    auto data_directory() -> std::filesystem::path override;
+
+private:
+    std::filesystem::path exe_dir_;
+};
+
+PlatformPathResolver::PlatformPathResolver() {
 #ifdef _WIN32
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(nullptr, path, MAX_PATH);
@@ -30,7 +41,7 @@ PathResolver::PathResolver() {
 #endif
 }
 
-auto PathResolver::config_directory() -> std::expected<std::filesystem::path, core::Error> {
+auto PlatformPathResolver::config_directory() -> std::expected<std::filesystem::path, core::Error> {
     // 便携优先：exe 同级 config/
     auto portable = exe_dir_ / "config";
     if (std::filesystem::exists(portable)) {
@@ -50,7 +61,7 @@ auto PathResolver::config_directory() -> std::expected<std::filesystem::path, co
 #endif
 }
 
-auto PathResolver::data_directory() -> std::filesystem::path {
+auto PlatformPathResolver::data_directory() -> std::filesystem::path {
 #ifdef _WIN32
     return exe_dir_ / "data";
 #elif defined(__APPLE__)
@@ -60,6 +71,14 @@ auto PathResolver::data_directory() -> std::filesystem::path {
     auto home = std::getenv("HOME");
     return std::filesystem::path(home ? home : "") / ".local" / "share" / "launchpad";
 #endif
+}
+
+} // anonymous namespace
+
+namespace pal {
+
+auto PathResolver::create() -> std::unique_ptr<PathResolver> {
+    return std::make_unique<PlatformPathResolver>();
 }
 
 } // namespace pal

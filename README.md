@@ -15,24 +15,32 @@
 - 命令行安全转义：按 Windows 终端规则正确引号化
 - 运行时检测：启动前校验目录是否存在
 - 自定义终端覆盖：per-item terminal 字段覆盖默认终端
+- **零 shell 注入**：所有子进程通过 reproc 以 argv 数组启动，无 system/popen
 
 ## 快速开始
 
+### 前置要求
+
+- **CMake 3.29+**
+- **C++23 编译器**：GCC 14+ (MinGW/MSYS2) 或 Clang 16+ 或 MSVC 2022+
+- **Ninja** 构建系统
+- **Rust toolchain**（Slint 编译需要）
+
 ### 构建
 
-需要 Visual Studio 2022+ BuildTools（或完整 VS）与 CMake。使用构建助手脚本：
-
 ```powershell
-pwsh tools/build.ps1
-```
-
-或手动：
-
-```powershell
-# 在 VS Developer Command Prompt 中执行
+# 配置
 cmake --preset debug
-cmake --build build/debug
+
+# 构建主程序
+cmake --build build/debug --target wt-launcher
+
+# 构建并运行测试
+cmake --build build/debug --target core_tests --target platform_tests
+ctest --test-dir build/debug
 ```
+
+> 所有依赖（reproc/glaze/fmt/spdlog/doctest/trompeloeil）由 CPM.cmake 自动下载和编译，无需 vcpkg。
 
 ### 配置
 
@@ -43,59 +51,85 @@ cmake --build build/debug
 ```
 launchpad/
 ├── src/
-│   ├── core/          核心业务逻辑（Config/Launcher/is_dangerous/quote_arg/SelectedStore）
-│   ├── platform/      平台抽象层（PathResolver/TerminalLauncher/SingleInstance）
-│   └── ui/            Slint 界面（main_window/launch_card/dialog/theme + lucide 图标）
-├── tests/core/        单元测试（config/quote_arg/is_dangerous/launcher/selected_store）
+│   ├── core/          核心业务逻辑（Config/Launcher/LaunchPlanBuilder/quote_arg/is_dangerous）
+│   ├── platform/      平台抽象层（PathResolver/TerminalLauncher/SingleInstance/ThemeDetector）
+│   └── ui/            Slint 界面（main_window + lucide 图标）
+├── tests/
+│   ├── core/          core_lib 单元测试（doctest，19+ 用例）
+│   └── platform/      平台抽象测试（Trompeloeil mock，4+ 用例）
+├── cmake/
+│   ├── CPM.cmake      声明式依赖管理
+│   └── CompileOptions.cmake  编译选项
 ├── config/
-│   ├── config.example.json   配置模板，随仓库分发
-│   ├── config.json           本地工作配置，不入库
-│   ├── config.json.bak       保存时自动生成
-│   └── settings.json         UI 偏好（confirmEnabled/theme）
-├── tools/
-│   ├── build.ps1             构建助手脚本（自动初始化 MSVC 环境）
-│   └── verify.ps1            配置与规则验证脚本
+├── .github/workflows/ CI/CD 流水线
+├── .clang-tidy        静态分析配置
+├── .pre-commit-config.yaml  提交钩子
 ├── CMakeLists.txt
 ├── CMakePresets.json
-└── vcpkg.json
+└── vcpkg.json         （归档，现已由 CPM 替代）
 ```
 
-## 启动项配置契约
+## 架构
 
-`config/config.json` 是一个 JSON 数组，每个元素为一个启动项：
+```
+src/core/   (zero Slint dep)   核心逻辑
+    ↑
+src/platform/                  平台抽象（虚基类 + 工厂 + reproc 进程启动）
+    ↑
+src/app.cpp + ui/              Slint 界面层
+```
 
-| 字段 | 类型 | 说明 |
+**关键架构决策**：
+- **依赖方向**：`core_lib` -> `platform_lib` -> `wt-launcher`
+- **零 shell 执行**：所有进程通过 reproc argv 启动，`::popen`/`::system` 被 clang-tidy 禁止
+- **可测试性**：平台抽象通过虚基类 + 工厂函数实现，使用 Trompeloeil 进行 mock 测试
+- **RAII 生命周期**：`std::jthread` 替代 `std::thread::detach`，支持协作取消
+
+## 依赖管理
+
+所有第三方依赖通过 CPM.cmake 声明式管理（从源码构建，自动适配编译器）：
+
+| 依赖 | 用途 | 类型 |
 |------|------|------|
-| `name` | string | 显示名称 |
-| `directory` | string | 启动目录，运行时校验必须存在 |
-| `command` | string | 在该目录中执行的命令 |
-| `confirm` | boolean | 为 true 时启动前弹窗确认 |
-| `id` | string | 稳定标识，用于持久化选中状态 |
-| `selected` | boolean | 是否处于批量选中状态 |
-| `terminal` | string? | 可选，覆盖默认终端 |
-| `tag` | string? | 可选，标签分类 |
-| `group` | string? | 可选，分组 |
+| reproc | 跨平台进程启动 | 静态库 |
+| glaze | JSON 序列化 | 静态库 |
+| fmt | 格式化 | 静态库 |
+| spdlog | 日志 | 静态库 |
+| trompeloeil | Mock 框架 | header-only |
+| doctest | 测试框架 | header-only |
+| Slint | UI 框架 | FetchContent (Rust) |
 
 ## 安全边界
 
 - 启动前校验目录是否存在、命令是否为空
+- **零 shell 执行**：所有子进程通过 reproc 以 argv 数组传递参数
 - 启动确认由全局开关 `settings.json` 的 `confirmEnabled` 控制
 - 危险命令检测：`dangerously`、`yolo`、`skip-permissions`、`bypass-approvals`、`bypass-sandbox`
 - 批量启动逐项检查确认设置
 - 命令行参数按 Windows 终端规则正确引号化
+- CI 中 clang-tidy 静态分析自动禁止 `::popen` / `::system` / 字符串拼接命令
 
 ## 验证
 
 ```powershell
-pwsh tools/verify.ps1     # 配置与规则验证
-ctest --test-dir build/debug  # 单元测试
+# 全部测试
+ctest --test-dir build/debug --output-on-failure
+
+# 构建测试目标
+cmake --build build/debug --target core_tests
+cmake --build build/debug --target platform_tests
+
+# 静态分析（需安装 clang-tidy）
+pre-commit run clang-tidy --all-files
 ```
 
 ## 技术栈
 
-- C++23 + CMake + Ninja
-- Slint 1.17（UI 框架）
-- Glaze 7.9（JSON 序列化）
-- doctest 2.5.3（单元测试）
-- vcpkg（依赖管理）
+- C++23 + CMake 3.29+ + Ninja
+- Slint 1.x（UI 框架，Rust）
+- reproc 14.x（跨平台进程启动）
+- glaze 4.x（JSON 序列化）
+- spdlog + fmt（日志 + 格式化）
+- doctest + Trompeloeil（测试 + mock）
+- CPM.cmake（依赖管理）
 - Windows / macOS / Linux（跨平台）

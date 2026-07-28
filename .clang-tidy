@@ -1,0 +1,61 @@
+# Launchpad clang-tidy configuration
+# 目标: 从根源阻断安全规范违反和代码质量问题
+
+Checks: >
+  -*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  cert-*,
+  misc-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  bugprone-*,
+  concurrency-*,
+
+WarningsAsErrors: >
+  cppcoreguidelines-no-malloc,
+  cppcoreguidelines-pro-type-vararg,
+  cert-err34-c,
+  cert-msc30-c,
+  cert-msc50-cpp,
+  clang-analyzer-core.*,
+  bugprone-suspicious-string-compare,
+
+CheckOptions:
+  # 禁止使用 ::popen() / system() / ::pclose()
+  cert-dcl50-cpp: true
+  cert-msc30-c: true
+  cert-msc50-cpp: true
+
+  # 死代码检测
+  clang-analyzer-deadcode.DeadStores: true
+
+  # 字符串拼接安全
+  bugprone-string-integer-assignment: true
+  bugprone-string-constructor: true
+
+  # 线程安全
+  concurrency-thread-canceltype-asynchronous: true
+  concurrency-mt-unsafe: true
+
+  # 现代 C++ 风格
+  modernize-use-override: true
+  modernize-use-default-member-init: true
+  modernize-use-nullptr: true
+  modernize-use-auto: true
+
+  # 头文件规范
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.MemberCase: camelBack
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.GlobalConstantCase: UPPER_CASE
+
+  # 参数安全检查
+  cert-oop54-cpp: true
+
+HeaderFilterRegex: '.*'
+AnalyzeTemporaryDtors: false
+FormatStyle: file

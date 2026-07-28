@@ -1,0 +1,31 @@
+# CPM.cmake - CMake's missing package manager
+# See https://github.com/cpm-cmake/CPM.cmake
+# Auto-downloads CPM.cmake if not found locally.
+
+set(CPM_DOWNLOAD_VERSION 0.40.5)
+set(CPM_HASH_SUM "c46b876ae3b9f994b4f05a4c15553e0485636862064f1fcc9d8b4f832086bc5d")
+
+if(CPM_SOURCE_CACHE)
+  set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+elseif(DEFINED ENV{CPM_SOURCE_CACHE})
+  set(CPM_DOWNLOAD_LOCATION "$ENV{CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+else()
+  set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+endif()
+
+# Expand relative path. This is an attempt to make the path safe for
+# Windows and Unix-like systems.
+if(NOT IS_ABSOLUTE "${CPM_DOWNLOAD_LOCATION}")
+  get_filename_component(CPM_DOWNLOAD_LOCATION "${CPM_DOWNLOAD_LOCATION}" ABSOLUTE)
+endif()
+
+if(NOT EXISTS "${CPM_DOWNLOAD_LOCATION}")
+  message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
+  file(DOWNLOAD
+       https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+       "${CPM_DOWNLOAD_LOCATION}"
+       EXPECTED_HASH SHA256=${CPM_HASH_SUM}
+  )
+endif()
+
+include("${CPM_DOWNLOAD_LOCATION}")

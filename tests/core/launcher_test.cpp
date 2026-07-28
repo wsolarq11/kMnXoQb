@@ -7,7 +7,7 @@
 // LaunchItem 顺序: name, directory, command, confirm, id, selected, terminal, tag, group
 // 辅助函数避免直接使用 designated initializer 的严格顺序要求
 namespace {
-    auto make_item(const std::string& name, const std::string& id, 
+    auto make_item(const std::string& name, const std::string& id,
                    const std::string& dir = "C:\\", const std::string& cmd = "") -> core::LaunchItem {
         core::LaunchItem item;
         item.name = name;
@@ -16,28 +16,6 @@ namespace {
         item.command = cmd;
         return item;
     }
-}
-
-TEST_CASE("Launcher: quote_arg delegation") {
-    core::Launcher launcher("test_dir");
-    CHECK_EQ(launcher.quote_arg("ab"), "\"ab\"");
-    CHECK_EQ(launcher.quote_arg(std::string("a\"b")), "\"a\\\"b\"");
-}
-
-TEST_CASE("Launcher: is_dangerous delegation") {
-    core::Launcher launcher("test_dir");
-    CHECK(launcher.is_dangerous("--dangerously-bypass"));
-    CHECK_FALSE(launcher.is_dangerous("snow"));
-}
-
-TEST_CASE("Launcher: build_command formats correctly") {
-    core::Launcher launcher("test_dir");
-    auto item = make_item("test", "test-id", "C:\\projects\\myapp", "snow");
-
-    auto result = launcher.build_command(item);
-    REQUIRE(result.has_value());
-    CHECK(result->starts_with("wt -d"));
-    CHECK(result->find("pwsh -NoExit -Command") != std::string::npos);
 }
 
 TEST_CASE("Launcher: validate_item rejects invalid items") {

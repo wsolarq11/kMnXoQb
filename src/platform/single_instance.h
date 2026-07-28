@@ -1,19 +1,27 @@
 #pragma once
 
+#include <memory>
+
 namespace pal {
 
+// 单实例检测器。
+// Windows: 命名互斥体（CreateMutexW），进程崩溃 OS 自动释放。
+// macOS/Linux: lockfile + flock（写入 /tmp 或 $XDG_RUNTIME_DIR），进程崩溃 OS 自动释放。
+// 析构释放锁资源。
 class SingleInstance {
 public:
-    SingleInstance();
-    ~SingleInstance();
+    virtual ~SingleInstance() = default;
 
-    bool is_only_instance() const { return is_only_; }
+    SingleInstance(const SingleInstance&) = delete;
+    SingleInstance& operator=(const SingleInstance&) = delete;
 
-private:
-    bool is_only_ = true;
-#ifdef _WIN32
-    void* mutex_ = nullptr;
-#endif
+    virtual bool is_only_instance() const = 0;
+
+    // 工厂方法，创建平台相关的 SingleInstance 实例
+    static auto create() -> std::unique_ptr<SingleInstance>;
+
+protected:
+    SingleInstance() = default;
 };
 
 } // namespace pal

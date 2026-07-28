@@ -4,29 +4,32 @@
     {
       "name": "debug",
       "displayName": "Debug (x64-windows)",
-      "generator": "Ninja",
+      "generator": "MinGW Makefiles",
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": "C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake",
-        "CMAKE_PREFIX_PATH": "C:/tools/slint",
         "CMAKE_CXX_STANDARD": "23",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_NINJA_NO_SHOWINCLUDES": "ON"
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "FMT_TEST": "OFF",
+        "CARGO_HOME": "C:/.cargo-cache",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "C:/Users/<USER>/.cargo/bin/sccache.exe",
+        "CMAKE_C_COMPILER_LAUNCHER": "C:/Users/<USER>/.cargo/bin/sccache.exe"
       }
     },
     {
       "name": "release",
       "displayName": "Release (x64-windows)",
-      "generator": "Ninja",
+      "generator": "MinGW Makefiles",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_TOOLCHAIN_FILE": "C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake",
-        "CMAKE_PREFIX_PATH": "C:/tools/slint",
         "CMAKE_CXX_STANDARD": "23",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-        "CMAKE_NINJA_NO_SHOWINCLUDES": "ON"
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "FMT_TEST": "OFF"
       }
     }
   ],

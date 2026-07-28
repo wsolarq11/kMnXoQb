@@ -10,7 +10,7 @@
 #include "platform/path_resolver.h"
 #include "main_window.h"
 
-class App {
+class App : public std::enable_shared_from_this<App> {
 public:
     App(slint::ComponentHandle<MainWindow> window);
     int run();

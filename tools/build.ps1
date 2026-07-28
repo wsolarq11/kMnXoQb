@@ -22,21 +22,26 @@ Write-Host "[build] Initializing MSVC x64 environment..." -ForegroundColor Cyan
 $env:INCLUDE = ''
 $env:LIB = ''
 $env:LIBPATH = ''
-& cmd /c "`"$VcVars`" 2>nul && set INCLUDE && set LIB && set LIBPATH" | ForEach-Object {
+& cmd /c "`"$VcVars`" 2>nul && set INCLUDE && set LIB && set LIBPATH && set PATH" | ForEach-Object {
     if ($_ -match '^INCLUDE=(.*)') { $env:INCLUDE = $Matches[1] }
     if ($_ -match '^LIB=(.*)') { $env:LIB = $Matches[1] }
     if ($_ -match '^LIBPATH=(.*)') { $env:LIBPATH = $Matches[1] }
+    if ($_ -match '^PATH=(.*)') { $msvc_path = $Matches[1] }
 }
+# 合并 MSVC 环境 PATH + 用户 PATH 中不含 msys2/mingw 的条目
+$clean_user_path = ($env:PATH -split ';' | Where-Object { $_ -and $_ -notmatch 'msys|mingw|ucrt64' }) -join ';'
+# 确保 cargo/bin 在 PATH 中（Rust 工具链路径）
+$cargo_bin = "$env:USERPROFILE\.cargo\bin"
+if ($clean_user_path -notlike "*$cargo_bin*") { $clean_user_path = "$cargo_bin;$clean_user_path" }
+# 确保 sccache 在 PATH 中
+$sccache_dir = 'C:\tools'
+if ($clean_user_path -notlike "*$sccache_dir*") { $clean_user_path = "$sccache_dir;$clean_user_path" }
+$env:PATH = "$msvc_path;$clean_user_path"
 
-# Step 2: Configure (only if CMake cache missing)
+# Step 3: Configure using CMakePresets (使用 sccache 构建缓存)
 if (-not (Test-Path (Join-Path $BuildDir 'CMakeCache.txt'))) {
     Write-Host "[build] Configuring CMake ($Config)..." -ForegroundColor Cyan
-    cmake -S $RootDir -B $BuildDir -G Ninja `
-        -DCMAKE_BUILD_TYPE=$Config `
-        -DCMAKE_TOOLCHAIN_FILE='C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake' `
-        -DCMAKE_PREFIX_PATH='C:/tools/slint' `
-        -DCMAKE_CXX_STANDARD=23 `
-        -DCMAKE_CXX_STANDARD_REQUIRED=ON
+    cmake --preset $Config
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 

@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/cmake-build/index.md", "reason": "更新依赖管理 vcpkg→CPM.cmake，追加 MinGW/FMT_TEST/CARGO_HOME 规范"}
+{"file": ".trellis/spec/cross-platform/index.md", "reason": "追加 reproc argv 进程启动规范、Trompeloeil mock 测试、工厂模式代码示例"}
+{"file": ".trellis/spec/security/index.md", "reason": "追加 reproc argv 替代 popen、clang-tidy 门禁、pre-commit hooks 安全自动化"}
+{"file": ".trellis/spec/guides/incremental-refactor-workflow.md", "reason": "新建：七阶段增量重构工作流指南"}
+{"file": ".trellis/spec/guides/index.md", "reason": "追加增量重构工作流指南链接"}
+{"file": ".trellis/spec/index.md", "reason": "更新 security/guides 描述，反映最新规范"}
+{"file": ".trellis/tasks/07-26-roots-c-completeness/implement.jsonl", "reason": "Phase D 审计: 全部 PRD 验收标准通过 — SingleInstance lockfile/ThemeDetector/tests跨平台/spec清理/构建测试验证"}

@@ -25,3 +25,22 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: 归档 bootstrap-guidelines
+
+**Date**: 2026-07-28
+**Task**: 归档 bootstrap-guidelines
+**Branch**: `main`
+
+### Summary
+
+项目为 C++ 桌面应用，非 fullstack。.trellis/spec/ 已填充真实 C++ layer 规范（cpp-core/slint-ui/cmake-build/cross-platform/security），bootstrap 任务目标已达成，归档。
+
+### Git Commits
+
+(No commits - planning session)
+
+### Status
+
+[OK] **Completed**

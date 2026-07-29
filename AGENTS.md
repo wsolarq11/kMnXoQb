@@ -22,11 +22,11 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 ## Quick Reference
 
-- **Build**: `cmake --preset debug && cmake --build build/debug --target wt-launcher`
-- **Test**: `ctest --test-dir build/debug --output-on-failure`
-- **Safety**: NO popen/system/shell concat — use `reproc::process::start({...})`
-- **Platform abstraction**: virtual base + `static auto create() -> unique_ptr<T>` factory
-- **Deps**: CPM.cmake from source (reproc/glaze/fmt/spdlog/doctest/trompeloeil)
-- **Concurrency**: `std::jthread` + `std::stop_token`, never `detach()`
-- **Compiler**: GCC 16.1.0 (MinGW via MSYS2 UCRT64)
-- **Spec index**: see `.trellis/spec/index.md` — layers: cmake-build, cross-platform, security, guides
+- **Build**: `cd launchpad-rs && cargo build --release` (4.0 MB binary)
+- **Test**: `cd launchpad-rs && cargo test` (12 tests)
+- **Lint**: `cd launchpad-rs && cargo clippy --all-targets -- -D warnings`
+- **Safety**: NO shell exec — `std::process::Command` with argv array
+- **GUI**: egui immediate mode — no DSL, no callbacks
+- **CLI**: clap derive — `launchpad-rs {check,list,launch}`
+- **Config**: JSON Schema via schemars — single source of truth
+- **CI**: `.github/workflows/ci.yml` — 3-OS matrix

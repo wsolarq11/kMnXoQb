@@ -1,5 +1,7 @@
-# WT Launcher CI/CD Pipeline
-# 跨平台构建 + 缓存加速 + 静态分析 + 测试门禁
+# CI — Rust + egui (launchpad-rs)
+#
+# C++ 构建已随 2026-07-29 迁移至 Rust 后移除。
+# 旧 C++ 代码仍在仓库中（src/、tests/），但不再作为 CI 门禁目标。
 
 name: CI
 
@@ -9,120 +11,9 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  # 依赖缓存位置
-  CARGO_HOME: ${{ github.workspace }}/.cargo-cache
-  CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
-
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        config: [debug]
-        include:
-          - os: ubuntu-latest
-            preset: debug
-            compiler: g++-14
-          - os: windows-latest
-            preset: debug
-            compiler: g++
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      # --- Rust (Slint 编译需要) ---
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      # --- CPM 源码缓存 (跨构建复用) ---
-      - name: Cache CPM dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CPM_SOURCE_CACHE }}
-          key: cpm-${{ matrix.os }}-${{ hashFiles('CMakeLists.txt') }}
-          restore-keys: |
-            cpm-${{ matrix.os }}-
-
-      # --- Cargo 缓存 (Rust crate 下载) ---
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.CARGO_HOME }}/registry
-            ${{ env.CARGO_HOME }}/git
-          key: cargo-${{ matrix.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ matrix.os }}-
-
-      # --- Ubuntu: 安装 GCC 14 (C++23 支持) ---
-      - name: Setup GCC 14 (Ubuntu)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++-14 cmake ninja-build
-          echo "CC=gcc-14" >> $GITHUB_ENV
-          echo "CXX=g++-14" >> $GITHUB_ENV
-          # Clang-tidy for static analysis
-          sudo apt-get install -y clang-tidy
-
-      # --- Windows: 安装 MinGW (msys2) ---
-      - name: Setup MinGW (Windows)
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-clang-tools-extra
-
-      # --- Step 1: CMake Configure ---
-      - name: Configure CMake
-        run: |
-          cmake -S . -B build/${{ matrix.config }} \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
-            -DCMAKE_CXX_STANDARD=23 \
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-            -DCPM_SOURCE_CACHE=${{ env.CPM_SOURCE_CACHE }} \
-            -DFMT_TEST=OFF
-
-      # --- Step 2: Build ---
-      - name: Build wt-launcher
-        run: cmake --build build/${{ matrix.config }} --target wt-launcher --parallel
-
-      # --- Step 3: Build tests ---
-      - name: Build core_tests
-        run: cmake --build build/${{ matrix.config }} --target core_tests --parallel
-
-      - name: Build platform_tests
-        run: cmake --build build/${{ matrix.config }} --target platform_tests --parallel
-
-      # --- Step 4: Run tests ---
-      - name: Run all tests
-        run: ctest --test-dir build/${{ matrix.config }} --tests-regex "(core_tests|platform_tests)" --output-on-failure
-
-      # --- Step 5: Static analysis (Linux only, clang-tidy) ---
-      - name: Static analysis (clang-tidy)
-        if: runner.os == 'Linux'
-        run: |
-          run-clang-tidy-18 -p build/${{ matrix.config }} \
-            -checks='-*,clang-analyzer-*,bugprone-*,cert-*,cppcoreguidelines-*,performance-*' \
-            -warnings-as-errors='*' \
-            -quiet \
-            src/
-        continue-on-error: true
-
-  # --- Job: Rust + egui (launchpad-rs) ---
-  rust:
-    name: rust (${{ matrix.os }})
+  check:
+    name: check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -149,69 +40,14 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('launchpad-rs/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Check formatting
+      - name: cargo fmt --check
         run: cargo fmt --all -- --check
 
-      - name: Run clippy
+      - name: cargo clippy
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Run tests
+      - name: cargo test
         run: cargo test --workspace
 
-      - name: Build release
+      - name: cargo build --release
         run: cargo build --release
-
-  # --- Job: CodeQL semantic analysis (parallel, non-blocking) ---
-  analyze:
-    name: CodeQL analyze (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        language: [cpp]
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-and-quality
-
-      # Build with CodeQL tracing (minimal build)
-      - name: Install dependencies (Ubuntu)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++-14 cmake ninja-build
-
-      - name: Configure CMake
-        run: |
-          cmake -S . -B build/debug \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_STANDARD=23 \
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-            -DFMT_TEST=OFF
-
-      - name: Build with CodeQL tracing
-        run: cmake --build build/debug --target wt-launcher --parallel
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          output: sarif-results
-          category: cpp
-
-      - name: Upload SARIF to GitHub (Code Scanning)
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: sarif-results
-          category: cpp

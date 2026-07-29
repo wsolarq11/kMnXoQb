@@ -1,0 +1,29 @@
+{
+  "id": "phase-d-future",
+  "name": "phase-d-future",
+  "title": "Phase D: Future Enhancements",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P3",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-07-29",
+  "completedAt": "2026-07-29",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "07-29-ux-pain-points-resolution",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "description": "Extend launcher beyond desktop: Web (WASM via Trunk), TUI (ratatui), and multi-client IPC daemon mode. 12 actionable items.",
+    "notes": "Shared modules: types, config, launch, danger. Each UI mode is a separate binary target. Additive -- no changes to GUI code."
+  }
+}

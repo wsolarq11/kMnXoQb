@@ -1,0 +1,26 @@
+[package]
+name = "launchpad-rs"
+version = "0.1.0"
+edition = "2021"
+description = "WT Launcher — Rust/egui POC. Cross-platform terminal launcher for AI coding agents."
+
+[dependencies]
+eframe = "0.31"
+egui = "0.31"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+schemars = "1"
+dark-light = "0.2"
+anyhow = "1"
+dirs = "6"
+native-dialog = "0.7"
+
+[dev-dependencies]
+proptest = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1

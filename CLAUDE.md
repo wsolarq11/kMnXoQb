@@ -227,3 +227,51 @@ GitHub Actions workflow at `.github/workflows/ci.yml`:
 - New error codes or error handling patterns
 - Changed naming conventions or style rules
 - New or removed CI jobs
+
+## Rust / egui Architecture (2026-07)
+
+A Rust + egui POC (`launchpad-rs/`) demonstrates an alternative architecture that eliminates 20 UX pain points identified in the C++ + Slint codebase.
+
+### Design Principles
+
+1. **Immediate mode GUI** (egui): UI code IS state management. No DSL, no callback binding, no generated code.
+2. **Single source of truth** (schemars + serde): `LaunchItem` struct → JSON Schema → GUI form → CLI parser — all auto-derived.
+3. **Zero-shell exec** (std::process::Command): argv goes directly to CreateProcessW/posix_spawn. Same security property as reproc.
+4. **Single language** (Rust): No C++/Slint/CMake context switching. One `cargo build` for everything.
+
+### Quick Reference
+
+```bash
+cd launchpad-rs
+cargo build --release          # 4.0 MB binary
+cargo test                     # 12 tests (10 unit + 2 proptest)
+cargo run -- list ../config/config.json   # CLI table
+cargo run -- launch --dry-run ../config/config.json <id>  # preview
+```
+
+### Module Map
+
+| File | Purpose | Lines |
+|------|---------|-------|
+| `src/types.rs` | LaunchItem, AppSettings, WindowState — JSON Schema source | 115 |
+| `src/config.rs` | serde ConfigIO (read/write config.json + settings.json) | 72 |
+| `src/launch.rs` | Zero-shell process spawn + is_dangerous detection | 123 |
+| `src/app.rs` | egui UI — all 20 pain points eliminated in this file | 739 |
+| `src/main.rs` | clap CLI dispatch + eframe GUI entry | 287 |
+| `tests/integration_test.rs` | 10 unit + 2 proptest property tests | 212 |
+
+### Key Differences from C++ Architecture
+
+- **No UI DSL**: egui immediate mode. Adding a field = add to struct + add one UI line.
+- **No callback cascades**: State and UI coexist in the same function.
+- **No CMake**: `cargo build` handles everything.
+- **No Glaze manual reflection**: `#[derive(Serialize, Deserialize, JsonSchema)]`.
+- **No hand-written CLI parser**: `#[derive(clap::Parser)]` with auto-generated `--help`.
+
+### CI
+
+`launchpad-rs/.github/workflows/ci.yml`:
+- Matrix: ubuntu-latest + windows-latest + macos-latest
+- Lint: clippy + rustfmt
+- Tests: `cargo test --workspace`
+- Release build: `cargo build --release`

@@ -1,0 +1,31 @@
+{
+  "id": "ux-pain-points-resolution",
+  "name": "ux-pain-points-resolution",
+  "title": "Rust + egui + JSON Schema POC",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-07-29",
+  "completedAt": "2026-07-29",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-29-phase-a-egui-poc",
+    "07-29-phase-b-full-migration",
+    "07-29-phase-c-quality",
+    "07-29-phase-d-future"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

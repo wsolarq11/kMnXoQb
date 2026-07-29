@@ -3,8 +3,12 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <tlhelp32.h>
 #include <string>
+#include <unordered_set>
 #include <vector>
+
+#include "core/split_whitespace.h"
 
 namespace pal {
 namespace detail {
@@ -21,28 +25,6 @@ auto build_pwsh_argv(const std::string& dir, const std::string& cmd) -> std::vec
 // 构造 cmd argv: /k "cd /d <dir> && <cmd>" (dir quoted)
 auto build_cmd_argv(const std::string& dir, const std::string& cmd) -> std::vector<std::string> {
     return {"/k", "cd /d \"" + dir + "\" && " + cmd};
-}
-
-// 按空白拆分（用于 terminal_override）。
-// 不支持引号嵌套/转义：`"C:\Program Files\term.exe" --flag` 会被拆分为 5 段。
-// 如需支持引号，应升级为完整命令行解析器（如 CommandLineToArgvW）。
-auto split_by_whitespace(const std::string& s) -> std::vector<std::string> {
-    std::vector<std::string> tokens;
-    std::string current;
-    for (char ch : s) {
-        if (ch == ' ' || ch == '\t') {
-            if (!current.empty()) {
-                tokens.push_back(std::move(current));
-                current.clear();
-            }
-        } else {
-            current += ch;
-        }
-    }
-    if (!current.empty()) {
-        tokens.push_back(std::move(current));
-    }
-    return tokens;
 }
 
 // 按 CreateProcessW 的 lpCommandLine 规则序列化 argv：
@@ -94,6 +76,56 @@ auto to_wstring(const std::string& s) -> std::wstring {
         MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &ws[0], len);
     }
     return ws;
+}
+
+// 获取当前所有 pwsh.exe / cmd.exe 的 PID 集合
+auto snapshot_terminal_pids() -> std::unordered_set<DWORD> {
+    std::unordered_set<DWORD> pids;
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) return pids;
+    PROCESSENTRY32W pe = { sizeof(pe) };
+    if (Process32FirstW(snap, &pe)) {
+        do {
+            if (_wcsicmp(pe.szExeFile, L"pwsh.exe") == 0 ||
+                _wcsicmp(pe.szExeFile, L"cmd.exe") == 0) {
+                pids.insert(pe.th32ProcessID);
+            }
+        } while (Process32NextW(snap, &pe));
+    }
+    CloseHandle(snap);
+    return pids;
+}
+
+// 获取当前所有 OpenConsole.exe / conhost.exe 的 PID 集合
+auto snapshot_console_pids() -> std::unordered_set<DWORD> {
+    std::unordered_set<DWORD> pids;
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE) return pids;
+    PROCESSENTRY32W pe = { sizeof(pe) };
+    if (Process32FirstW(snap, &pe)) {
+        do {
+            if (_wcsicmp(pe.szExeFile, L"OpenConsole.exe") == 0 ||
+                _wcsicmp(pe.szExeFile, L"conhost.exe") == 0) {
+                pids.insert(pe.th32ProcessID);
+            }
+        } while (Process32NextW(snap, &pe));
+    }
+    CloseHandle(snap);
+    return pids;
+}
+
+// 等待并找到新增的终端子进程 PID
+auto find_new_terminal_pid(const std::unordered_set<DWORD>& before, int max_wait_ms = 2000) -> DWORD {
+    for (int i = 0; i < max_wait_ms / 100; ++i) {
+        Sleep(100);
+        auto after = snapshot_terminal_pids();
+        for (auto pid : after) {
+            if (before.find(pid) == before.end()) {
+                return pid;
+            }
+        }
+    }
+    return 0;
 }
 
 } // namespace detail
@@ -150,7 +182,7 @@ auto WinTerminalLauncher::populate(core::LaunchPlan plan) const
 
     if (plan.terminal_override.has_value() && !plan.terminal_override->empty()) {
         // 自定义终端覆盖：按空白拆分为 executable + args 前缀
-        auto override_parts = detail::split_by_whitespace(*plan.terminal_override);
+        auto override_parts = core::split_by_whitespace(*plan.terminal_override);
         if (override_parts.empty()) {
             return std::unexpected(core::Error::TerminalNotFound("empty terminal_override"));
         }
@@ -193,11 +225,11 @@ auto WinTerminalLauncher::launch(const core::LaunchPlan& plan)
     PROCESS_INFORMATION pi;
 
     BOOL success = CreateProcessW(
-        nullptr,           // lpApplicationName（nullptr 让 lpCommandLine 第一段作 exe）
-        &cmd_line[0],      // lpCommandLine（argv 序列化）
+        nullptr,           // lpApplicationName
+        &cmd_line[0],      // lpCommandLine
         nullptr, nullptr,  // 安全属性
         FALSE,             // 句柄继承
-        0,                 // 创建标志
+        CREATE_NEW_CONSOLE,
         nullptr,           // 环境变量
         wdir.empty() ? nullptr : &wdir[0],  // 工作目录
         &si, &pi
@@ -214,6 +246,32 @@ auto WinTerminalLauncher::launch(const core::LaunchPlan& plan)
     ProcessHandle handle;
     handle.handle_ = pi.hProcess;
     handle.pid_ = pi.dwProcessId;
+
+    bool is_wt = plan.executable.filename() == "wt.exe";
+    if (type_ == TerminalType::kWt && is_wt) {
+        auto pids_before = detail::snapshot_terminal_pids();
+        auto console_before = detail::snapshot_console_pids();
+        handle.tracked_pid_ = detail::find_new_terminal_pid(pids_before);
+        // Track the console host (OpenConsole.exe/conhost.exe) that backs
+        // the new tab. Killing it closes the tab even with -NoExit.
+        for (int i = 0; i < 20; ++i) {
+            Sleep(100);
+            auto console_after = detail::snapshot_console_pids();
+            for (auto pid : console_after) {
+                if (console_before.find(pid) == console_before.end()) {
+                    handle.console_pid_ = pid;
+                    break;
+                }
+            }
+            if (handle.console_pid_ != 0) break;
+        }
+        // Close the wt.exe handle early — it's already exiting
+        if (handle.handle_ != nullptr) {
+            CloseHandle(handle.handle_);
+            handle.handle_ = nullptr;
+        }
+    }
+
     return handle;
 }
 

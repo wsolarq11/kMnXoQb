@@ -24,6 +24,7 @@ These guides help you **ask the right questions before coding**.
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
 | [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
 | [增量重构工作流指南](./incremental-refactor-workflow.md) | 七阶段落地方法论 | 大型架构改造、安全审计、跨阶段项目 |
+| [WT Lifecycle Analysis](./wt-lifecycle-analysis.md) | WindowsTerminal 生命周期管理深度分析 | 外部进程无法关闭 WT tab；工厂注入替代方案 |
 
 ---
 

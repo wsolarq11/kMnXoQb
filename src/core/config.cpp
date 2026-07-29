@@ -1,23 +1,22 @@
 #include "core/config.h"
-#include <fstream>
+#include "core/fs_iface.h"
 #include <glaze/glaze.hpp>
 
 namespace core {
 
-ConfigIO::ConfigIO(std::filesystem::path config_dir)
-    : config_dir_(std::move(config_dir)) {}
+ConfigIO::ConfigIO(std::filesystem::path config_dir, FilesystemIface& fs)
+    : config_dir_(std::move(config_dir)), fs_(fs) {}
 
 auto ConfigIO::read_items() -> std::expected<std::vector<LaunchItem>, Error> {
     auto path = config_dir_ / "config.json";
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        return std::unexpected(Error::ConfigNotFound(path.string()));
+    auto content = fs_.read_file(path);
+    if (!content) {
+        return std::unexpected(content.error());
     }
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    auto result = glz::read_json<std::vector<LaunchItem>>(content);
+    auto result = glz::read_json<std::vector<LaunchItem>>(*content);
     if (!result) {
-        return std::unexpected(Error::ConfigParseError(glz::format_error(result.error(), content)));
+        return std::unexpected(Error::ConfigParseError(glz::format_error(result.error(), *content)));
     }
     return std::move(*result);
 }
@@ -30,33 +29,29 @@ auto ConfigIO::write_items(const std::vector<LaunchItem>& items) -> std::expecte
         return std::unexpected(Error::ConfigWriteError(glz::format_error(write_result.error())));
     }
 
-    // 备份现有文件
-    if (std::filesystem::exists(path)) {
-        std::error_code ec;
-        std::filesystem::copy_file(path, config_dir_ / "config.json.bak",
-            std::filesystem::copy_options::overwrite_existing, ec);
+    // Backup existing file
+    if (fs_.file_exists(path)) {
+        auto backup = config_dir_ / "config.json.bak";
+        auto copy_result = fs_.copy_file(path, backup);
+        if (!copy_result) {
+            return copy_result;
+        }
     }
 
-    std::ofstream file(path);
-    if (!file.is_open()) {
-        return std::unexpected(Error::ConfigWriteError("Cannot open file for writing"));
-    }
-    file << *write_result;
-    return {};
+    return fs_.write_file(path, *write_result);
 }
 
 auto ConfigIO::read_settings() -> std::expected<AppSettings, Error> {
     auto path = config_dir_ / "settings.json";
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        // settings.json 可选，不存在时返回默认值
+    auto content = fs_.read_file(path);
+    if (!content) {
+        // settings.json is optional; return defaults on missing
         return AppSettings{};
     }
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    auto result = glz::read_json<AppSettings>(content);
+    auto result = glz::read_json<AppSettings>(*content);
     if (!result) {
-        return std::unexpected(Error::ConfigParseError(glz::format_error(result.error(), content)));
+        return std::unexpected(Error::ConfigParseError(glz::format_error(result.error(), *content)));
     }
     return std::move(*result);
 }
@@ -69,12 +64,7 @@ auto ConfigIO::write_settings(const AppSettings& settings) -> std::expected<void
         return std::unexpected(Error::ConfigWriteError(glz::format_error(write_result.error())));
     }
 
-    std::ofstream file(path);
-    if (!file.is_open()) {
-        return std::unexpected(Error::ConfigWriteError("Cannot open file for writing"));
-    }
-    file << *write_result;
-    return {};
+    return fs_.write_file(path, *write_result);
 }
 
 } // namespace core

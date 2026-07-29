@@ -1,35 +1,16 @@
 #include <doctest/doctest.h>
 #include <rapidcheck.h>
 
+#include <core/split_whitespace.h>
+
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <sstream>
 
-// ---------- helpers under test (inline for property testing) ----------
+// ---------- helpers under test ----------
 
 namespace {
-
-// 按空白拆分（来自 terminal_launcher_win.cpp，逻辑等价复制以便测试）
-// 不支持引号嵌套/转义
-auto split_by_whitespace(const std::string& s) -> std::vector<std::string> {
-    std::vector<std::string> tokens;
-    std::string current;
-    for (char ch : s) {
-        if (ch == ' ' || ch == '\t') {
-            if (!current.empty()) {
-                tokens.push_back(std::move(current));
-                current.clear();
-            }
-        } else {
-            current += ch;
-        }
-    }
-    if (!current.empty()) {
-        tokens.push_back(std::move(current));
-    }
-    return tokens;
-}
 
 // 将 tokens 用空格重新拼接
 auto join_with_space(const std::vector<std::string>& tokens) -> std::string {
@@ -56,7 +37,7 @@ TEST_CASE("split_by_whitespace: joining tokens reconstructs input (whitespace no
         // 只对非空输入测试
         RC_PRE(!input.empty());
 
-        auto tokens = split_by_whitespace(input);
+        auto tokens = core::split_by_whitespace(input);
         auto joined = join_with_space(tokens);
 
         // 属性：拆分的 tokens 再拼接，应该得到不含首尾空白且连续空白被压缩为单空格的字符串
@@ -88,7 +69,7 @@ TEST_CASE("split_by_whitespace: whitespace-only input yields empty tokens") {
         RC_PRE(!input.empty());
         RC_PRE(count_whitespace(input) == input.size()); // 全是空白
 
-        auto tokens = split_by_whitespace(input);
+        auto tokens = core::split_by_whitespace(input);
         RC_ASSERT(tokens.empty());
     });
 }
@@ -98,7 +79,7 @@ TEST_CASE("split_by_whitespace: no whitespace yields single token equal to input
         RC_PRE(!input.empty());
         RC_PRE(count_whitespace(input) == 0); // 无空白
 
-        auto tokens = split_by_whitespace(input);
+        auto tokens = core::split_by_whitespace(input);
         RC_ASSERT(tokens.size() == 1);
         RC_ASSERT(tokens[0] == input);
     });
@@ -108,7 +89,7 @@ TEST_CASE("split_by_whitespace: each token is non-empty") {
     rc::check([](const std::string& input) {
         RC_PRE(!input.empty());
 
-        auto tokens = split_by_whitespace(input);
+        auto tokens = core::split_by_whitespace(input);
         for (const auto& t : tokens) {
             RC_ASSERT(!t.empty());
         }
@@ -117,7 +98,7 @@ TEST_CASE("split_by_whitespace: each token is non-empty") {
 
 TEST_CASE("split_by_whitespace: token count is at most whitespace count + 1") {
     rc::check([](const std::string& input) {
-        auto tokens = split_by_whitespace(input);
+        auto tokens = core::split_by_whitespace(input);
         auto ws = count_whitespace(input);
         RC_ASSERT(tokens.size() <= ws + 1);
     });
@@ -146,7 +127,7 @@ TEST_CASE("split_by_whitespace: joining does not introduce extra whitespace") {
         }
 
         auto joined = join_with_space(tokens);
-        auto reparsed = split_by_whitespace(joined);
+        auto reparsed = core::split_by_whitespace(joined);
 
         RC_ASSERT(reparsed.size() == tokens.size());
         for (size_t i = 0; i < tokens.size(); ++i) {

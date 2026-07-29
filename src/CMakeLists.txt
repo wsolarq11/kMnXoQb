@@ -6,10 +6,14 @@ add_library(core_lib STATIC
     core/selected_store.cpp
     core/launcher.cpp
     core/launch_plan_builder.cpp
+    core/split_whitespace.cpp
+    core/validate_rules.cpp
+    core/deduplicate_id.cpp
+    core/filter_items.cpp
 )
 
 target_include_directories(core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(core_lib PUBLIC glaze::glaze spdlog::spdlog)
+target_link_libraries(core_lib PUBLIC glaze::glaze)
 # Platform library
 add_library(platform_lib STATIC
     platform/path_resolver.cpp
@@ -19,15 +23,30 @@ add_library(platform_lib STATIC
     platform/terminal_launcher_factory.cpp
     platform/single_instance.cpp
     platform/theme_detector.cpp
+    platform/dialog_provider_win.cpp
+    platform/dialog_provider_macos.cpp
+    platform/dialog_provider_linux.cpp
+    platform/dialog_provider_factory.cpp
+    platform/terminal_launcher_conpty.cpp
 )
 
 target_include_directories(platform_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(platform_lib PRIVATE core_lib reproc reproc++)
 
+# Shell library (LauncherApp, logger, real FS — shared between GUI and tests)
+add_library(shell_lib STATIC
+    shell/launcher_app.cpp
+)
+
+target_include_directories(shell_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(shell_lib PUBLIC core_lib platform_lib spdlog::spdlog)
+
 # Main executable
 add_executable(wt-launcher
     main.cpp
     app.cpp
+    cli_check.cpp
+    cli_launch.cpp
 )
 
 slint_target_sources(wt-launcher
@@ -36,8 +55,7 @@ slint_target_sources(wt-launcher
 
 target_link_libraries(wt-launcher PRIVATE
     Slint::Slint
-    core_lib
-    platform_lib
+    shell_lib
     reproc
     reproc++
 )

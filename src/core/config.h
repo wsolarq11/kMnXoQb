@@ -9,9 +9,11 @@
 
 namespace core {
 
+class FilesystemIface;
+
 class ConfigIO {
 public:
-    explicit ConfigIO(std::filesystem::path config_dir);
+    ConfigIO(std::filesystem::path config_dir, FilesystemIface& fs);
 
     auto read_items() -> std::expected<std::vector<LaunchItem>, Error>;
     auto write_items(const std::vector<LaunchItem>& items) -> std::expected<void, Error>;
@@ -20,6 +22,7 @@ public:
 
 private:
     std::filesystem::path config_dir_;
+    FilesystemIface& fs_;
 };
 
 } // namespace core

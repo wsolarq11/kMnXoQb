@@ -34,15 +34,18 @@ struct ProcessHandle {
     // 移动构造：转移所有权，源置空
     ProcessHandle(ProcessHandle&& other) noexcept
 #ifdef _WIN32
-        : handle_(other.handle_), pid_(other.pid_)
+        : handle_(other.handle_), pid_(other.pid_), tracked_pid_(other.tracked_pid_), console_pid_(other.console_pid_), conpty_(other.conpty_)
 #else
-        : pid_(other.pid_)
+        : pid_(other.pid_), tracked_pid_(other.tracked_pid_)
 #endif
     {
 #ifdef _WIN32
         other.handle_ = nullptr;
+        other.conpty_ = nullptr;
 #endif
         other.pid_ = -1;
+        other.tracked_pid_ = 0;
+        other.console_pid_ = 0;
     }
 
     // 移动赋值：先释放自身资源，再转移
@@ -57,6 +60,12 @@ struct ProcessHandle {
 #endif
             pid_ = other.pid_;
             other.pid_ = -1;
+            tracked_pid_ = other.tracked_pid_;
+            other.tracked_pid_ = 0;
+            console_pid_ = other.console_pid_;
+            other.console_pid_ = 0;
+            conpty_ = other.conpty_;
+            other.conpty_ = nullptr;
         }
         return *this;
     }
@@ -65,23 +74,69 @@ struct ProcessHandle {
     ProcessHandle(const ProcessHandle&) = delete;
     ProcessHandle& operator=(const ProcessHandle&) = delete;
 
+    // 终止进程并关闭终端窗口。
+    // 1. 精确终止 tracked / console PID
+    // 2. 回退终止主进程 handle_
+    void kill() {
+#ifdef _WIN32
+        kill_tracked();
+        if (handle_ != nullptr) {
+            TerminateProcess(handle_, 1);
+            handle_ = nullptr;
+        }
+#else
+        kill_tracked();
+        if (pid_ > 0) {
+            ::kill(pid_, SIGTERM);
+            pid_ = -1;
+        }
+#endif
+    }
+
     // 访问器（供平台实现设置）
 #ifdef _WIN32
     void* handle_ = nullptr;
     unsigned long pid_ = 0;
-
-    // 向后兼容的访问器
+    unsigned long tracked_pid_ = 0;
+    unsigned long console_pid_ = 0;
+    void* conpty_ = nullptr;       // HPCON for ConPTY cleanup
     void* handle() const { return handle_; }
     unsigned long pid() const { return pid_; }
 #else
     int pid_ = -1;
+    int tracked_pid_ = -1;
     int pid() const { return pid_; }
 #endif
 
 private:
 #ifdef _WIN32
+    void kill_tracked() {
+        // ConPTY: clean shutdown via ClosePseudoConsole
+        if (conpty_) {
+            ClosePseudoConsole(reinterpret_cast<HPCON>(conpty_));
+            conpty_ = nullptr;
+            tracked_pid_ = 0;
+            console_pid_ = 0;
+            return;
+        }
+        // Standard: TerminateProcess
+        auto term = [](DWORD pid) {
+            if (pid == 0) return;
+            HANDLE h = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+            if (h) { TerminateProcess(h, 1); CloseHandle(h); }
+        };
+        term(tracked_pid_); tracked_pid_ = 0;
+        term(console_pid_); console_pid_ = 0;
+    }
+
     friend class WinTerminalLauncher;
 #else
+    void kill_tracked() {
+        if (tracked_pid_ > 0) {
+            ::kill(static_cast<int>(tracked_pid_), SIGTERM);
+            tracked_pid_ = 0;
+        }
+    }
     friend class MacTerminalLauncher;
     friend class LinuxTerminalLauncher;
 #endif

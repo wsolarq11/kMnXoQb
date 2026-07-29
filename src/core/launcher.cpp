@@ -1,24 +1,20 @@
 #include "core/launcher.h"
-#include <filesystem>
+#include "core/fs_iface.h"
+#include "core/validate_rules.h"
 #include <algorithm>
 
 namespace core {
 
-Launcher::Launcher(std::string config_dir)
-    : config_dir_(std::move(config_dir)) {}
+Launcher::Launcher(std::string config_dir, FilesystemIface& fs)
+    : config_dir_(std::move(config_dir)), fs_(fs) {}
 
 auto Launcher::validate_item(const LaunchItem& item) -> std::expected<void, Error> {
-    if (item.name.empty()) {
-        return std::unexpected(Error::InvalidItem("name is empty"));
+    auto rules = validate_rules(item);
+    if (!rules) {
+        return rules;
     }
-    if (item.directory.empty()) {
-        return std::unexpected(Error::InvalidItem("directory is empty"));
-    }
-    if (!std::filesystem::exists(item.directory)) {
+    if (!fs_.directory_exists(item.directory)) {
         return std::unexpected(Error::DirectoryNotFound(item.directory));
-    }
-    if (item.command.empty()) {
-        return std::unexpected(Error::CommandEmpty());
     }
     return {};
 }

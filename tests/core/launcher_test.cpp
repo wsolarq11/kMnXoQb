@@ -2,6 +2,7 @@
 
 #include "core/launcher.h"
 #include "core/selected_store.h"
+#include "shell/real_filesystem.h"
 
 // C++23 要求 designated initializer 顺序匹配成员声明顺序
 // LaunchItem 顺序: name, directory, command, confirm, id, selected, terminal, tag, group
@@ -19,7 +20,8 @@ namespace {
 }
 
 TEST_CASE("Launcher: validate_item rejects invalid items") {
-    core::Launcher launcher("test_dir");
+    shell::RealFilesystem fs;
+    core::Launcher launcher("test_dir", fs);
     core::LaunchItem item;
 
     auto r1 = launcher.validate_item(item);
@@ -35,7 +37,8 @@ TEST_CASE("Launcher: validate_item rejects invalid items") {
 }
 
 TEST_CASE("Launcher: launch_selected finds by id (Bug fix verification)") {
-    core::Launcher launcher("test_dir");
+    shell::RealFilesystem fs;
+    core::Launcher launcher("test_dir", fs);
     core::SelectedStore selected;
 
     std::vector<core::LaunchItem> items;
@@ -53,7 +56,8 @@ TEST_CASE("Launcher: launch_selected finds by id (Bug fix verification)") {
 }
 
 TEST_CASE("Launcher: launch_selected skips unknown ids gracefully") {
-    core::Launcher launcher("test_dir");
+    shell::RealFilesystem fs;
+    core::Launcher launcher("test_dir", fs);
     core::SelectedStore selected;
 
     std::vector<core::LaunchItem> items;

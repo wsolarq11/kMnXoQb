@@ -10,6 +10,8 @@
 
 namespace core {
 
+class FilesystemIface;
+
 struct LaunchResult {
     int success = 0;
     int failed = 0;
@@ -17,7 +19,7 @@ struct LaunchResult {
 
 class Launcher {
 public:
-    explicit Launcher(std::string config_dir);
+    Launcher(std::string config_dir, FilesystemIface& fs);
 
     // 校验启动项（目录存在、命令非空）
     auto validate_item(const LaunchItem& item) -> std::expected<void, Error>;
@@ -29,6 +31,7 @@ public:
 
 private:
     std::string config_dir_;
+    FilesystemIface& fs_;
 };
 
 } // namespace core

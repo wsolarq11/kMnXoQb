@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include "core/config.h"
+#include "shell/real_filesystem.h"
 #include <filesystem>
 #include <fstream>
 
@@ -29,7 +30,8 @@ struct TempDir {
 
 TEST_CASE("ConfigIO: read_items from non-existent dir returns ConfigNotFound") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path / "nonexistent");
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path / "nonexistent", fs);
     auto result = config.read_items();
     REQUIRE_FALSE(result.has_value());
     CHECK_EQ(result.error().code(), core::ErrorCode::kConfigNotFound);
@@ -37,7 +39,8 @@ TEST_CASE("ConfigIO: read_items from non-existent dir returns ConfigNotFound") {
 
 TEST_CASE("ConfigIO: write_items then read_items roundtrip") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path);
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path, fs);
 
     // 准备数据
     std::vector<core::LaunchItem> items;
@@ -89,7 +92,8 @@ TEST_CASE("ConfigIO: write_items then read_items roundtrip") {
 
 TEST_CASE("ConfigIO: write_items creates backup of existing file") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path);
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path, fs);
 
     // 先写入一份数据
     std::vector<core::LaunchItem> items;
@@ -117,7 +121,8 @@ TEST_CASE("ConfigIO: write_items creates backup of existing file") {
 
 TEST_CASE("ConfigIO: read_settings returns defaults when file missing") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path);
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path, fs);
     auto result = config.read_settings();
     REQUIRE(result.has_value());
     CHECK_EQ(result->confirm_enabled, false);
@@ -127,7 +132,8 @@ TEST_CASE("ConfigIO: read_settings returns defaults when file missing") {
 
 TEST_CASE("ConfigIO: write_settings then read_settings roundtrip") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path);
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path, fs);
 
     core::AppSettings settings;
     settings.confirm_enabled = true;
@@ -148,7 +154,8 @@ TEST_CASE("ConfigIO: write_settings then read_settings roundtrip") {
 
 TEST_CASE("ConfigIO: read_items with invalid JSON returns ConfigParseError") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path);
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path, fs);
 
     // 写入无效 JSON
     std::ofstream file(tmp.path / "config.json");
@@ -162,7 +169,8 @@ TEST_CASE("ConfigIO: read_items with invalid JSON returns ConfigParseError") {
 
 TEST_CASE("ConfigIO: write_items with empty list") {
     TempDir tmp;
-    core::ConfigIO config(tmp.path);
+    shell::RealFilesystem fs;
+    core::ConfigIO config(tmp.path, fs);
 
     std::vector<core::LaunchItem> empty;
     auto result = config.write_items(empty);

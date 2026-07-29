@@ -11,6 +11,10 @@ add_executable(core_tests
     launcher_test.cpp
     launch_plan_builder_test.cpp
     rapidcheck_test.cpp
+    split_whitespace_test.cpp
+    validate_rules_test.cpp
+    deduplicate_id_test.cpp
+    filter_items_test.cpp
 )
 target_link_libraries(core_tests PRIVATE
     doctest::doctest

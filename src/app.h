@@ -4,23 +4,24 @@
 #include <vector>
 #include <slint.h>
 
-#include "core/config.h"
-#include "core/launcher.h"
-#include "core/selected_store.h"
-#include "platform/path_resolver.h"
+#include "shell/launcher_app.h"
+#include "platform/dialog_provider.h"
 #include "main_window.h"
 
 class App : public std::enable_shared_from_this<App> {
 public:
-    App(slint::ComponentHandle<MainWindow> window);
+    App(slint::ComponentHandle<MainWindow> window,
+        shell::LauncherApp& app,
+        pal::DialogProvider& dialog_provider);
+
     int run();
 
 private:
-    void load_config();
-    void save_config();
     void refresh_ui();
     void bind_callbacks();
+    void update_card_model();
 
+    // Callbacks (delegate to app_)
     void on_toggle_confirm(bool enabled);
     void on_show_add_dialog();
     void on_launch(int index);
@@ -38,18 +39,13 @@ private:
     void on_confirm_launch();
     void on_cancel_launch();
     void on_toggle_theme();
-    void launch_item(int index);
-    void update_card_model();
 
     slint::ComponentHandle<MainWindow> window_;
-    std::unique_ptr<core::ConfigIO> config_;
-    std::unique_ptr<core::Launcher> launcher_;
-    core::SelectedStore selected_;
-    std::unique_ptr<pal::PathResolver> resolver_;
-    std::vector<core::LaunchItem> items_;
-    core::AppSettings settings_;
+    shell::LauncherApp& app_;
+    pal::DialogProvider& dialog_provider_;
+
+    std::shared_ptr<slint::VectorModel<LaunchCardData>> card_model_;
     int current_edit_index_ = -1;
     int pending_launch_index_ = -1;
-    std::shared_ptr<slint::VectorModel<LaunchCardData>> card_model_;
     std::string search_query_;
 };

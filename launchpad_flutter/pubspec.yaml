@@ -37,6 +37,8 @@ dependencies:
   rust_lib_launchpad_flutter:
     path: rust_builder
   flutter_rust_bridge: 2.12.0
+  lucide_icons: ^0.257.0
+  google_fonts: ^8.2.0
 
 dev_dependencies:
   flutter_test:

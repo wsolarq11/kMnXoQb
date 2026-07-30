@@ -103,9 +103,8 @@ fn default_theme() -> String {
     "system".to_string()
 }
 
-/// Result of a launch operation (used for dry-run display).
+/// Result of a launch plan (used for dry-run display).
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct LaunchPlan {
     pub executable: String,
     pub args: Vec<String>,

@@ -10,6 +10,7 @@
 //!   launchpad-rs launch <config> <id>          Launch item by id
 //!   launchpad-rs launch --dry-run <config> <id> Preview launch plan
 
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
@@ -79,43 +80,24 @@ fn main() -> anyhow::Result<()> {
 // ── GUI ──
 
 fn run_gui(config_override: Option<PathBuf>) -> anyhow::Result<()> {
-    let config_dir = config_override.unwrap_or_else(|| {
-        // Portable-first: config/ next to exe
-        std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|d| d.join("config")))
-            .filter(|p| p.exists())
-            .unwrap_or_else(|| {
-                // Fallback to platform-standard config dir
-                dirs::config_dir()
-                    .unwrap_or_else(|| PathBuf::from("."))
-                    .join("launchpad")
-                    .join("config")
-            })
-    });
+    let config_dir = resolve_config_dir(config_override);
 
     // Ensure config directory exists
     std::fs::create_dir_all(&config_dir).ok();
 
-    // Single-instance lock
+    // Single-instance lock (PID-based: survives stale locks from killed processes)
     let lock_path = config_dir.join(".lock");
-    let lock_file = std::fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(&lock_path);
-
-    if lock_file.is_err() {
-        // Another instance is running — don't silently exit
-        let _ = native_dialog::MessageDialog::new()
-            .set_title("WT Launcher")
-            .set_text("Another instance is already running.")
-            .set_type(native_dialog::MessageType::Info)
-            .show_alert();
-        return Ok(());
-    }
-
-    // Clean up lock file on exit
-    let _guard = LockGuard(lock_path.clone());
+    let _guard = match acquire_lock(&lock_path) {
+        Some(guard) => guard,
+        None => {
+            let _ = native_dialog::MessageDialog::new()
+                .set_title("WT Launcher")
+                .set_text("Another instance is already running.")
+                .set_type(native_dialog::MessageType::Info)
+                .show_alert();
+            return Ok(());
+        }
+    };
 
     let app_state = app::LauncherApp::new(config_dir.clone());
 
@@ -249,39 +231,88 @@ fn cmd_dry_run(config_path: &Path, id: &str) -> anyhow::Result<()> {
         anyhow::bail!("Item not found: {id}. Use --list to see available IDs.");
     };
 
+    let p = launch::plan(item);
+
     println!("id:             {id}");
     println!("name:           {}", item.name);
     println!("command:        {}", item.command);
     println!("working_dir:    {}", item.directory);
-    println!("is_dangerous:   {}", launch::is_dangerous(&item.command));
+    println!("is_dangerous:   {}", p.is_dangerous);
     println!(
         "terminal:       {}",
-        item.terminal.as_deref().unwrap_or("(default)")
+        p.terminal_override.as_deref().unwrap_or("(default)")
     );
-
-    #[cfg(target_os = "windows")]
-    {
-        println!("executable:     wt.exe");
-        println!(
-            "args:           new-tab -d \"{}\" pwsh -NoExit -Command \"{}\"",
-            item.directory, item.command
-        );
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        println!("executable:     (platform default terminal)");
-        println!("args:           (shell: {})", item.command);
-    }
+    println!("executable:     {}", p.executable);
+    println!("args:           {}", p.args.join(" "));
 
     Ok(())
 }
 
-// ── Single-instance lock guard ──
+// ── Config directory resolution ──
+
+/// Hardcoded default for development (`cargo run` CWD is launchpad-rs/).
+/// TODO(release): switch to `<exe_dir>/config/` for shipped binaries.
+const DEFAULT_CONFIG_DIR: &str = "../config";
+
+fn resolve_config_dir(cli_override: Option<PathBuf>) -> PathBuf {
+    cli_override.unwrap_or_else(|| PathBuf::from(DEFAULT_CONFIG_DIR))
+}
+
+// ── Single-instance lock (PID-based) ──
 
 /// RAII guard that removes the lock file on drop.
 struct LockGuard(PathBuf);
 impl Drop for LockGuard {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// Try to acquire the single-instance lock.
+///
+/// Writes current PID into the lock file. On next launch, reads the PID
+/// and checks whether that process is still alive. If the old process was
+/// killed, the stale lock is automatically cleaned up.
+fn acquire_lock(lock_path: &Path) -> Option<LockGuard> {
+    // Fast path: create lock file atomically
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(lock_path)
+    {
+        let pid = std::process::id();
+        let _ = f.write_all(pid.to_string().as_bytes());
+        return Some(LockGuard(lock_path.to_path_buf()));
+    }
+
+    // Lock file exists — check if the holder is still alive
+    let pid: u32 = std::fs::read_to_string(lock_path).ok()?.trim().parse().ok()?;
+    if pid_is_alive(pid) {
+        return None; // genuinely locked
+    }
+
+    // Stale lock from a dead process — take over
+    let _ = std::fs::remove_file(lock_path);
+    acquire_lock(lock_path) // retry once
+}
+
+/// Check whether a process with the given PID is currently running.
+/// Uses only stdlib — no platform crates needed.
+fn pid_is_alive(pid: u32) -> bool {
+    #[cfg(windows)]
+    {
+        std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/NH"])
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).contains(&pid.to_string()))
+            .unwrap_or(false)
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
     }
 }

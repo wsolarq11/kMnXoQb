@@ -40,3 +40,8 @@ wt-last-out.txt
 # OS files
 .DS_Store
 Thumbs.db
+
+# WinUI 3 / .NET build artifacts
+launchpad/src/launchpad/bin/
+launchpad/src/launchpad/obj/
+launchpad/tests/

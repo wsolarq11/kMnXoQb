@@ -25,6 +25,8 @@ public partial class App : Application
         File.AppendAllText(
             Path.Combine(Path.GetTempPath(), "launchpad-crash.log"),
             $"[{DateTime.Now:O}] {e.Exception}\n---\n");
+        // Keep the instance alive; unhandled exceptions are logged, not fatal.
+        e.Handled = true;
     }
 
     private static string ResolveConfigDir()

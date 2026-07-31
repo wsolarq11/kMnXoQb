@@ -22,6 +22,24 @@ public sealed class LaunchUseCase(IProcessSpawner spawner, ITerminalDetector det
 
     public void Launch(LaunchItem item) => spawner.Launch(Plan(item));
 
+    /// <summary>
+    /// Spawn with error capture: returns a message on failure (invalid directory,
+    /// missing terminal), null on success. The UI surfaces the message in the
+    /// status bar instead of crashing the app.
+    /// </summary>
+    public string? TryLaunch(LaunchItem item)
+    {
+        try
+        {
+            spawner.Launch(Plan(item));
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
     /// <summary>Prepend to launch history, capped at <paramref name="max"/> entries
     /// (matches legacy behavior: no deduplication).</summary>
     public static List<string> PushHistory(List<string> history, string name, int max = 10)

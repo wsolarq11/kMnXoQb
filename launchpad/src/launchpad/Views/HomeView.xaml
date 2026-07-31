@@ -38,7 +38,7 @@
             </Button>
             <Button Grid.Column="3" Click="OnNew" Style="{ThemeResource AccentButtonStyle}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <FontIcon Glyph="&#xE45E;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="14" />
+                    <FontIcon Glyph="{StaticResource GlyphPlus}" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="14" />
                     <TextBlock Text="New" />
                 </StackPanel>
             </Button>
@@ -149,16 +149,16 @@
                                         TextTrimming="CharacterEllipsis"
                                         VerticalAlignment="Center" />
                                     <Button Grid.Column="1" ToolTipService.ToolTip="Edit" Click="OnEdit" Padding="4">
-                                        <FontIcon Glyph="&#xE43D;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                        <FontIcon Glyph="{StaticResource GlyphPencil}" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
                                     <Button Grid.Column="2" ToolTipService.ToolTip="Delete" Click="OnDelete" Padding="4">
-                                        <FontIcon Glyph="&#xE546;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                        <FontIcon Glyph="{StaticResource GlyphTrash2}" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
                                     <Button Grid.Column="3" ToolTipService.ToolTip="Move Up" Click="OnMoveUp" Padding="4">
-                                        <FontIcon Glyph="&#xE1FD;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                        <FontIcon Glyph="{StaticResource GlyphChevronUp}" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
                                     <Button Grid.Column="4" ToolTipService.ToolTip="Move Down" Click="OnMoveDown" Padding="4">
-                                        <FontIcon Glyph="&#xE1F5;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                        <FontIcon Glyph="{StaticResource GlyphChevronDown}" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
                                     <CheckBox
                                         Grid.Column="5"
@@ -205,7 +205,7 @@
                 VerticalAlignment="Center"
                 Spacing="10">
                 <FontIcon
-                    Glyph="&#xE5A3;"
+                    Glyph="{StaticResource GlyphZap}"
                     FontSize="40"
                     Foreground="{ThemeResource AccentBrush}"
                     HorizontalAlignment="Center" />

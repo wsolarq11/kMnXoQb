@@ -188,7 +188,13 @@ public sealed partial class HomeViewModel : ObservableObject
             }
         }
 
-        _launchUseCase.Launch(item);
+        var error = _launchUseCase.TryLaunch(item);
+        if (error is not null)
+        {
+            StatusText = $"Launch failed: {error}";
+            return;
+        }
+
         _settings = SettingsUseCase.PushHistory(_settings, item.Name);
         Save();
         StatusText = $"Launched: {item.Name}";
@@ -198,11 +204,12 @@ public sealed partial class HomeViewModel : ObservableObject
     private void LaunchSelected()
     {
         var selected = _all.Where(i => i.Selected).ToList();
-        foreach (var item in selected)
-        {
-            _launchUseCase.Launch(item);
-        }
+        var failures = selected.Count(item => _launchUseCase.TryLaunch(item) is not null);
 
-        StatusText = selected.Count > 0 ? $"Launched {selected.Count} items" : string.Empty;
+        StatusText = selected.Count == 0
+            ? string.Empty
+            : failures == 0
+                ? $"Launched {selected.Count} items"
+                : $"Launched {selected.Count - failures} of {selected.Count} items ({failures} failed)";
     }
 }

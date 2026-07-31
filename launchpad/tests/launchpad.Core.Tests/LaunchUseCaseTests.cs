@@ -78,6 +78,24 @@ public sealed class LaunchUseCaseTests
     }
 
     [Fact]
+    public void TryLaunch_ReturnsNullOnSuccess()
+    {
+        var useCase = UseCase(out _, "wt.exe");
+
+        Assert.Null(useCase.TryLaunch(Item()));
+    }
+
+    [Fact]
+    public void TryLaunch_ReturnsErrorMessageOnSpawnFailure()
+    {
+        var useCase = new LaunchUseCase(new ThrowingSpawner(), new FakeTerminalDetector("wt.exe"));
+
+        var error = useCase.TryLaunch(Item());
+
+        Assert.Contains("invalid directory", error);
+    }
+
+    [Fact]
     public void PushHistory_PrependsAndCapsAtTen()
     {
         var history = new List<string> { "a", "b", "c" };
@@ -85,6 +103,12 @@ public sealed class LaunchUseCaseTests
         var result = LaunchUseCase.PushHistory(history, "new", max: 3);
 
         Assert.Equal(["new", "a", "b"], result);
+    }
+
+    internal sealed class ThrowingSpawner : IProcessSpawner
+    {
+        public void Launch(LaunchPlan plan) =>
+            throw new InvalidOperationException("invalid directory");
     }
 
     internal sealed class FakeSpawner : IProcessSpawner

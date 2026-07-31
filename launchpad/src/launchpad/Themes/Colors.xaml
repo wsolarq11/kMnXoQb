@@ -53,4 +53,15 @@
         <Setter Property="CornerRadius" Value="6" />
         <Setter Property="Padding" Value="14,6" />
     </Style>
+
+    <!-- Lucide glyph codepoints (single source; see LucideGlyph.cs for the C# side).
+         MUST stay in the F-series range (U+F100-F5A6) — that is what Lucide.ttf covers. -->
+    <x:String x:Key="GlyphPlus">&#xF45E;</x:String>
+    <x:String x:Key="GlyphPencil">&#xF43D;</x:String>
+    <x:String x:Key="GlyphTrash2">&#xF546;</x:String>
+    <x:String x:Key="GlyphChevronUp">&#xF1FD;</x:String>
+    <x:String x:Key="GlyphChevronDown">&#xF1F5;</x:String>
+    <x:String x:Key="GlyphZap">&#xF5A3;</x:String>
+    <x:String x:Key="GlyphFolderOpen">&#xF30A;</x:String>
+    <x:String x:Key="GlyphAlertTriangle">&#xF10D;</x:String>
 </ResourceDictionary>

@@ -1,0 +1,32 @@
+{
+  "id": "remediate-all-findings",
+  "name": "remediate-all-findings",
+  "title": "全图实施：修复审查发现并加固架构",
+  "description": "基于 2026-07-31 全面审查结论的实施：5 个子任务覆盖止血修复、架构固化、构建治理、契约测试、spec 文档。全部实施后实战运行 + 独立质检 PASS。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P0",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-07-31",
+  "completedAt": "2026-07-31",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "07-31-critical-fixes",
+    "07-31-architecture-hardening",
+    "07-31-build-governance",
+    "07-31-contract-tests",
+    "07-31-spec-docs"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

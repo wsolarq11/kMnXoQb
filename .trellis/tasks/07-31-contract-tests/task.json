@@ -1,8 +1,8 @@
 {
-  "id": "spec-docs",
-  "name": "spec-docs",
-  "title": "spec 与文档治理",
-  "description": "B1-B5：移除过期 C++ spec 索引、CLAUDE.md 测试数与 phase2 链接修正、spec 更新",
+  "id": "contract-tests",
+  "name": "contract-tests",
+  "title": "外部进程契约测试",
+  "description": "S3：pwsh/cmd 分支集成测试（CI 可跑）、wt 分支本机契约测试、CREATE_NEW_CONSOLE 声称验证",
   "status": "in_progress",
   "dev_type": null,
   "scope": null,

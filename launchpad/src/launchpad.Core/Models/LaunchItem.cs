@@ -29,4 +29,10 @@ public sealed record LaunchItem
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Group { get; init; }
+
+    [JsonIgnore]
+    public bool HasTag => Tag is not null;
+
+    [JsonIgnore]
+    public bool HasGroup => Group is not null;
 }

@@ -16,6 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
   </ItemGroup>
@@ -24,6 +26,10 @@
     <ProjectReference Include="..\launchpad.Core\launchpad.Core.csproj" />
     <ProjectReference Include="..\launchpad.UseCases\launchpad.UseCases.csproj" />
     <ProjectReference Include="..\launchpad.Infrastructure\launchpad.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\Fonts\Lucide.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

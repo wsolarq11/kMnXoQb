@@ -1,0 +1,239 @@
+<Page
+    x:Class="Launchpad.Views.HomeView"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:Launchpad.Core.Models"
+    xmlns:local="using:Launchpad.Views"
+    Background="{ThemeResource BaseBrush}">
+
+    <Page.Resources>
+        <local:SelectedBorderConverter x:Key="SelectedBorderConverter" />
+        <local:SelectedBorderBrushConverter x:Key="SelectedBorderBrushConverter" />
+        <local:TagPrefixConverter x:Key="TagPrefixConverter" />
+        <local:GroupPrefixConverter x:Key="GroupPrefixConverter" />
+    </Page.Resources>
+
+    <Grid Padding="16" RowSpacing="12" RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <!-- Top bar: title + confirm toggle + theme + new -->
+        <Grid Grid.Row="0" ColumnSpacing="8" ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBlock
+                Text="WT Launcher"
+                FontSize="20"
+                FontWeight="Bold"
+                Foreground="{ThemeResource TextPrimaryBrush}"
+                VerticalAlignment="Center" />
+            <ToggleSwitch
+                Grid.Column="1"
+                Header="Confirm"
+                OnContent="" OffContent=""
+                IsOn="{x:Bind ViewModel.Settings.ConfirmEnabled, Mode=OneWay}"
+                Toggled="OnConfirmToggled" />
+            <Button Grid.Column="2" ToolTipService.ToolTip="Toggle theme" Click="OnThemeToggle">
+                <FontIcon
+                    Glyph="{x:Bind ViewModel.ThemeGlyph, Mode=OneWay}"
+                    FontFamily="Assets/Fonts/Lucide.ttf#Lucide"
+                    FontSize="16" />
+            </Button>
+            <Button Grid.Column="3" Click="OnNew" Style="{ThemeResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE45E;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="14" />
+                    <TextBlock Text="New" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Stats row -->
+        <Grid Grid.Row="1" ColumnSpacing="12" ColumnDefinitions="Auto,Auto">
+            <Border
+                Background="{ThemeResource SurfaceBrush}"
+                BorderBrush="{ThemeResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16,8">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock
+                        Text="{x:Bind ViewModel.ItemCount}"
+                        FontSize="28"
+                        FontWeight="Black"
+                        Foreground="{ThemeResource TextPrimaryBrush}"
+                        VerticalAlignment="Center" />
+                    <TextBlock
+                        Text="ITEMS"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextSecondaryBrush}"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+            <Border
+                Grid.Column="1"
+                Background="{ThemeResource SurfaceBrush}"
+                BorderBrush="{ThemeResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="16,8">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock
+                        Text="{x:Bind ViewModel.RecentName}"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextPrimaryBrush}"
+                        VerticalAlignment="Center"
+                        MaxWidth="280"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Text="RECENT"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextSecondaryBrush}"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Search + batch row -->
+        <Grid Grid.Row="2" ColumnSpacing="12" ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBox
+                PlaceholderText="Search..."
+                Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
+                VerticalAlignment="Center" />
+            <Button Grid.Column="1" Click="OnSelectAll" VerticalAlignment="Center">
+                <TextBlock Text="Select All" Foreground="{ThemeResource TextSecondaryBrush}" />
+            </Button>
+            <TextBlock
+                Grid.Column="2"
+                Text="{x:Bind ViewModel.SelectedCount}"
+                Foreground="{ThemeResource TextSecondaryBrush}"
+                VerticalAlignment="Center" />
+            <Button
+                Grid.Column="3"
+                Click="OnLaunchSelected"
+                Style="{ThemeResource AccentButtonStyle}"
+                VerticalAlignment="Center">
+                <TextBlock Text="Launch Selected" />
+            </Button>
+        </Grid>
+
+        <!-- Card grid + empty state -->
+        <Grid Grid.Row="3">
+            <GridView
+                ItemsSource="{x:Bind ViewModel.Items}"
+                SelectionMode="None"
+                IsItemClickEnabled="True"
+                ItemClick="OnCardClick"
+                Padding="0">
+                <GridView.ItemContainerStyle>
+                    <Style TargetType="GridViewItem">
+                        <Setter Property="Margin" Value="0,0,8,8" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </GridView.ItemContainerStyle>
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="models:LaunchItem">
+                        <Border
+                            Width="320"
+                            Height="118"
+                            CornerRadius="12"
+                            BorderThickness="{x:Bind Selected, Mode=OneWay, Converter={StaticResource SelectedBorderConverter}}"
+                            BorderBrush="{x:Bind Selected, Mode=OneWay, Converter={StaticResource SelectedBorderBrushConverter}}"
+                            Background="{ThemeResource SurfaceBrush}"
+                            Padding="10">
+                            <Grid RowSpacing="4" RowDefinitions="Auto,Auto,Auto,*">
+                                <Grid ColumnSpacing="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
+                                    <TextBlock
+                                        Text="{x:Bind Name}"
+                                        FontWeight="SemiBold"
+                                        Foreground="{ThemeResource TextPrimaryBrush}"
+                                        TextTrimming="CharacterEllipsis"
+                                        VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" ToolTipService.ToolTip="Edit" Click="OnEdit" Padding="4">
+                                        <FontIcon Glyph="&#xE43D;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                    </Button>
+                                    <Button Grid.Column="2" ToolTipService.ToolTip="Delete" Click="OnDelete" Padding="4">
+                                        <FontIcon Glyph="&#xE546;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                    </Button>
+                                    <Button Grid.Column="3" ToolTipService.ToolTip="Move Up" Click="OnMoveUp" Padding="4">
+                                        <FontIcon Glyph="&#xE1FD;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                    </Button>
+                                    <Button Grid.Column="4" ToolTipService.ToolTip="Move Down" Click="OnMoveDown" Padding="4">
+                                        <FontIcon Glyph="&#xE1F5;" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
+                                    </Button>
+                                    <CheckBox
+                                        Grid.Column="5"
+                                        IsChecked="{x:Bind Selected, Mode=OneWay}"
+                                        Checked="OnSelectToggled"
+                                        Unchecked="OnSelectToggled"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Text="{x:Bind Directory}"
+                                    FontFamily="Consolas"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextTertiaryBrush}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    Grid.Row="2"
+                                    Text="{x:Bind Command}"
+                                    FontFamily="Consolas"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource TextSecondaryBrush}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
+                                    <TextBlock
+                                        Text="{x:Bind Tag, Converter={StaticResource TagPrefixConverter}}"
+                                        FontSize="10"
+                                        Foreground="{ThemeResource AccentBrush}"
+                                        Visibility="{x:Bind HasTag, Mode=OneWay}" />
+                                    <TextBlock
+                                        Text="{x:Bind Group, Converter={StaticResource GroupPrefixConverter}}"
+                                        FontSize="10"
+                                        Foreground="{ThemeResource SuccessBrush}"
+                                        Visibility="{x:Bind HasGroup, Mode=OneWay}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
+
+            <StackPanel
+                Visibility="{x:Bind ViewModel.IsEmpty}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="10">
+                <FontIcon
+                    Glyph="&#xE5A3;"
+                    FontSize="40"
+                    Foreground="{ThemeResource AccentBrush}"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    Text="No items yet"
+                    Foreground="{ThemeResource TextSecondaryBrush}"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    Text="Click + New to add your first launch item"
+                    FontSize="12"
+                    Foreground="{ThemeResource TextTertiaryBrush}"
+                    HorizontalAlignment="Center" />
+                <Button Content="New Item" Click="OnNew" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border
+            Grid.Row="4"
+            Background="{ThemeResource SurfaceBrush}"
+            CornerRadius="6"
+            Padding="8"
+            Visibility="{x:Bind ViewModel.HasStatus}">
+            <TextBlock
+                Text="{x:Bind ViewModel.StatusText}"
+                FontFamily="Consolas"
+                FontSize="12"
+                Foreground="{ThemeResource TextSecondaryBrush}" />
+        </Border>
+    </Grid>
+</Page>

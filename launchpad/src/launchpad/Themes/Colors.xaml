@@ -46,4 +46,11 @@
     <SolidColorBrush x:Key="AccentBrush" Color="{ThemeResource AccentColor}" />
     <SolidColorBrush x:Key="DangerBrush" Color="{ThemeResource DangerColor}" />
     <SolidColorBrush x:Key="SuccessBrush" Color="{ThemeResource SuccessColor}" />
+
+    <Style x:Key="AccentButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="14,6" />
+    </Style>
 </ResourceDictionary>

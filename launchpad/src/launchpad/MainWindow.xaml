@@ -2,13 +2,5 @@
     x:Class="Launchpad.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Background="{ThemeResource BaseBrush}">
-        <TextBlock
-            Text="WT Launcher"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Foreground="{ThemeResource TextPrimaryBrush}"
-            FontSize="24"
-            FontWeight="Bold" />
-    </Grid>
+    <Grid />
 </Window>

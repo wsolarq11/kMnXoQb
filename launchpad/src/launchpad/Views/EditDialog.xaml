@@ -15,7 +15,7 @@
                 PlaceholderText="e.g. D:\projects\demo"
                 Text="{x:Bind ViewModel.Directory, Mode=TwoWay}" />
             <Button Grid.Column="1" VerticalAlignment="Bottom" Click="OnBrowse" Padding="10">
-                <FontIcon Glyph="{StaticResource GlyphFolderOpen}" FontFamily="Assets/Fonts/Lucide.ttf#Lucide" FontSize="14" />
+                <FontIcon Glyph="{StaticResource GlyphFolderOpen}" FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide" FontSize="14" />
             </Button>
         </Grid>
         <StackPanel
@@ -24,7 +24,7 @@
             Visibility="{x:Bind ViewModel.ShowDirectoryValidation}">
             <FontIcon
                 Glyph="{x:Bind ViewModel.DirGlyph}"
-                FontFamily="Assets/Fonts/Lucide.ttf#Lucide"
+                FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide"
                 FontSize="12"
                 Foreground="{x:Bind ViewModel.DirGlyphBrush}" />
             <TextBlock
@@ -42,7 +42,7 @@
             Visibility="{x:Bind ViewModel.ShowDangerWarning}">
             <FontIcon
                 Glyph="{StaticResource GlyphAlertTriangle}"
-                FontFamily="Assets/Fonts/Lucide.ttf#Lucide"
+                FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide"
                 FontSize="12"
                 Foreground="{ThemeResource DangerBrush}" />
             <TextBlock

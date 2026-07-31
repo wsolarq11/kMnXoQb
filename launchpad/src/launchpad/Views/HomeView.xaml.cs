@@ -82,7 +82,15 @@ public sealed partial class HomeView : Page
 
     private void OnThemeToggle(object sender, RoutedEventArgs e) => ViewModel.ToggleThemeCommand.Execute(null);
 
-    private void OnSelectAll(object sender, RoutedEventArgs e) => ViewModel.ToggleSelectAllCommand.Execute(null);
+    /// <summary>
+    /// Collection-mutating commands run deferred: RefreshItems clears and rebuilds
+    /// the item collection, and doing that while a routed event (CheckBox
+    /// Checked/Unchecked, Button Click) is still dispatching tears down the visual
+    /// tree mid-event, which crashes WinUI natively (no managed exception, no log).
+    /// </summary>
+    private void Defer(Action action) => DispatcherQueue.TryEnqueue(() => action());
+
+    private void OnSelectAll(object sender, RoutedEventArgs e) => Defer(() => ViewModel.ToggleSelectAllCommand.Execute(null));
 
     private void OnLaunchSelected(object sender, RoutedEventArgs e) => ViewModel.LaunchSelectedCommand.Execute(null);
 
@@ -98,17 +106,29 @@ public sealed partial class HomeView : Page
 
     private void OnEdit(object sender, RoutedEventArgs e) => _ = ShowEditAsync(ItemFrom(sender));
 
-    private void OnDelete(object sender, RoutedEventArgs e) => ViewModel.DeleteCommand.Execute(ItemFrom(sender));
+    private void OnDelete(object sender, RoutedEventArgs e)
+    {
+        var item = ItemFrom(sender);
+        Defer(() => ViewModel.DeleteCommand.Execute(item));
+    }
 
-    private void OnMoveUp(object sender, RoutedEventArgs e) => ViewModel.MoveUpCommand.Execute(ItemFrom(sender));
+    private void OnMoveUp(object sender, RoutedEventArgs e)
+    {
+        var item = ItemFrom(sender);
+        Defer(() => ViewModel.MoveUpCommand.Execute(item));
+    }
 
-    private void OnMoveDown(object sender, RoutedEventArgs e) => ViewModel.MoveDownCommand.Execute(ItemFrom(sender));
+    private void OnMoveDown(object sender, RoutedEventArgs e)
+    {
+        var item = ItemFrom(sender);
+        Defer(() => ViewModel.MoveDownCommand.Execute(item));
+    }
 
     private void OnSelectToggled(object sender, RoutedEventArgs e)
     {
         if ((sender as CheckBox)?.DataContext is LaunchItem item)
         {
-            ViewModel.ToggleSelectCommand.Execute(item);
+            Defer(() => ViewModel.ToggleSelectCommand.Execute(item));
         }
     }
 

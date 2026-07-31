@@ -2,60 +2,45 @@
 
 ## Principle
 
-**Do not spawn real OS processes in automated tests.** Terminal processes cannot be reliably terminated (Windows Terminal delegates tabs to a persistent `WindowsTerminal.exe`; the launcher spawns `wt.exe` as a client). Automated test coverage of the launch path stops at plan construction and argv assertion; the real spawn is verified manually.
+**真实进程测试必须可控，否则不测。** Windows Terminal 的 relay 行为（`wt.exe` 向持久 `WindowsTerminal.exe` 发消息后退出）使窗口生命周期无法从外部管理，但 pwsh/cmd 的**命令执行契约**（argv 转义、工作目录、错误码）可以在自动化测试中安全验证——2026-07-31 契约测试项目（`tests/launchpad.IntegrationTests`）证明这是可行的。
 
-## Rationale
+## 分层策略
 
-`ProcessSpawner.Start()` creates real processes. Attempting to test this path automatically:
+| 层 | 验证方式 | 位置 |
+|----|---------|------|
+| 纯决策（PlanWindows argv/转义） | 单元测试断言 | launchpad.Core.Tests |
+| 进程边界契约（pwsh/cmd 真实执行、目录语义、错误码） | 契约测试（真实 spawn） | launchpad.IntegrationTests |
+| wt.exe 窗口/命令执行 | 本机人工验证 + 启动成功断言（CI 自动 Skip） | IntegrationTests + 发布版冒烟 |
 
-- **Windows**: `wt.exe` acts as a client to `WindowsTerminal.exe`. Killing the `wt.exe` handle does not close the tab — the window persists.
-- **CI**: Headless environments may lack terminal emulators entirely, causing false failures.
-- **User desktop**: Orphaned terminal windows accumulate after test runs.
+## 契约测试规则（2026-07-31 起）
 
-The pure decision path (`LaunchPlanner.PlanWindows` → `LaunchPlan`) covers the entire business logic of launch preparation without creating a process. The final `Process.Start` call is a thin OS wrapper (`ProcessSpawner`, infrastructure layer) that can only be validated manually or via smoke tests.
+### R1: 真实 spawn 必须有超时与清理
 
-## Rules
+- 交互式命令（`-NoExit`/`/k`）用 settle 窗口（默认 2s）后 `Kill(entireProcessTree: true)`，禁止裸 `WaitForExit()`（会挂死）。
+- 输出用异步 `ReadToEndAsync`（防管道死锁）。
+- 测试目录用 `%TEMP%` 下唯一目录，`Dispose` 删除；wt 场景目录可能被终端进程短暂持有，删除失败忽略（临时残留可接受）。
 
-### R1: Automated tests stop at `PlanWindows`
+### R2: 环境不满足时跳过，不假绿不假红
 
-```csharp
-// COVERED by tests: pure plan construction + argv assertion
-[Fact]
-public void PlanWindows_WtAvailable_UsesWtExe()
-{
-    var plan = LaunchPlanner.PlanWindows(item, wtAvailable: true, pwshAvailable: true);
-    Assert.Equal("wt.exe", plan.Executable);
-    Assert.Equal(["new-tab", "-d", dir, terminal, "-NoExit", "-Command", item.Command], plan.Args);
-}
+- wt 依赖环境：`WtFactAttribute` 在反射期检测 `wt.exe` 可用性，不可用时设置 `Skip`（CI runner 无 Windows Terminal，自动跳过；本机自动执行）。
 
-// NOT covered by automated tests: actual process spawn
-// Validated manually: launch app, click a launch item card
-```
+### R3: 断言真实语义而非进程存在
 
-### R2: Use cases go through ports with fakes
+- pwsh：命令输出 `$PWD` 验证 cd 生效（单引号转义 `''`）；cmd：无参 `cd` 输出当前目录（**不要用 `%CD%`**——含 `&` 的目录名会触发 cmd 二次解析，`'and' is not recognized`）。
+- Windows 路径比较用 `OrdinalIgnoreCase`（pwsh 会规范化 `TEMP` → `Temp` 显示）。
+- 进程错误码：目录缺失是 267（ERROR_DIRECTORY）不是 3；缺 exe 是 2。
 
-`LaunchUseCase` depends on `IProcessSpawner`; tests inject a fake that records argv and returns success — the spawn boundary is mocked, launch rejection paths (empty command, unknown item, dangerous confirm) are asserted without spawning.
+### R4: 单元测试止于 PlanWindows
 
-### R3: Spawner is infrastructure-only
+纯决策路径（`LaunchPlanner.PlanWindows` → `LaunchPlan`）由单元测试覆盖 argv/转义/目录语义；契约测试只验证真实进程边界行为，两者不重叠。
 
-`ProcessSpawner` (infrastructure layer) is the only place `System.Diagnostics.Process` is constructed. It is not covered by automated tests; correctness of argv is asserted at the planner/use-case level.
+## 历史教训（wt relay）
 
-### R4: Manual verification covers the real launch path
+- `wt.exe` 是 relay 客户端：向 `WindowsTerminal.exe` 发 JSON 后退出，tab 生命周期由后者控制。外部进程无法关闭 wt tab（详见 `wt-lifecycle-analysis.md`）。
+- 所以 wt 的自动化契约止于"argv 被接受 + 进程启动成功"，命令执行层靠本机人工验证（打开窗口可见命令运行）。
 
-The real launch path is verified by:
+## 相关链接
 
-```
-# run the app, click a launch item card -> real terminal opens
-# or invoke the built exe with a configured item
-dotnet run --project src/launchpad
-```
-
-## Scope
-
-- `tests/launchpad.Core.Tests/` — pure functions + use cases with fakes, zero process spawning
-- Manual / smoke — actual process spawning verified interactively (release build + window + second-instance mutex probe)
-
-## Enforcement
-
-- Code review: no `IProcessSpawner.Start` call in test code except via fakes; spawn assertions check argv recorded by the fake.
-- Rejection tests are safe because validation happens before the spawn call is reached.
+- `tests/launchpad.IntegrationTests/TerminalContractTests.cs`（pwsh/cmd/wt 契约）
+- `tests/launchpad.IntegrationTests/SpawnerContractTests.cs`（ProcessSpawner 错误码契约）
+- `tests/launchpad.IntegrationTests/WtFactAttribute.cs`（wt 条件跳过）

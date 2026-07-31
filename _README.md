@@ -28,7 +28,7 @@ Windows 原生终端启动器。管理启动项列表，一键在终端中运行
 ```bash
 cd launchpad
 dotnet build src/launchpad/launchpad.csproj     # 构建
-dotnet test tests/launchpad.Core.Tests/         # 60 个测试
+dotnet test tests/launchpad.Core.Tests/         # 单元 + 架构测试
 dotnet run --project src/launchpad              # 运行
 ```
 

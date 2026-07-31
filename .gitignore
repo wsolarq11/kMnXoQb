@@ -1,9 +1,10 @@
 # Snow CLI runtime state
 .snow/
 
-# Local working config (contains machine-specific absolute paths)
+# Local working config (contains machine-specific absolute paths + runtime state)
 config/config.json
 config/config.json.bak
+config/settings.json
 *.bak
 
 # Archive (retired/version history binaries, kept local only)

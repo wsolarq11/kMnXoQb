@@ -1,5 +1,6 @@
 # Launchpad pre-commit hooks
-# 目标: 提交前自动执行安全规范检查、格式化和轻量分析
+# 目标: 提交前自动执行基础检查（项目已无 C++ 源码，零 shell 约束由
+#       LaunchPlannerTests 等单测覆盖，不再需要 pygrep 钩子）
 # 安装: pip install pre-commit && pre-commit install
 
 repos:
@@ -13,16 +14,6 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: check-merge-conflict
+      # 与 .gitattributes / .editorconfig 统一为 CRLF（Windows 项目）
       - id: mixed-line-ending
-        args: [--fix=lf]
-
-  # --- 安全扫描: 禁止 popen/system/字符串拼接命令 ---
-  - repo: local
-    hooks:
-      - id: forbid-popen
-        name: forbid popen/system calls
-        entry: '::popen\(|::system\(|::pclose\('
-        language: pygrep
-        types: [c++]
-        exclude: '\.clang-tidy$'
-        fail_fast: true
+        args: [--fix=crlf]

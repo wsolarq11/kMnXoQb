@@ -6,7 +6,7 @@
 
 ## 适用场景
 
-- 大型架构改造（如替换进程启动库、切换依赖管理系统）
+- 大型架构改造（如替换进程启动方式、切换依赖管理）
 - 安全审计修复（shell 注入、权限检查、输入校验）
 - 跨阶段项目（需要 7 个以上独立可验证里程碑）
 
@@ -18,13 +18,13 @@
 
 | 任务 | 交付物 |
 |------|--------|
-| 依赖管理搭建 | CPM.cmake / Conan / vcpkg |
-| 静态分析配置 | `.clang-tidy`（禁止 popen/死代码建议规则） |
-| 提交钩子 | `pre-commit-config.yaml`（format + lint + 安全检查） |
-| 构建缓存 | sccache/ccache 集成 |
-| 编译器/工具链 | CMakePresets（debug + release） |
+| 依赖管理搭建 | .csproj PackageReference（NuGet 还原） |
+| 静态分析配置 | `dotnet build` 内置分析器（Nullable enable + 警告即错误可选） |
+| 提交钩子 | `pre-commit-config.yaml`（基础检查 + 安全单测门禁） |
+| 构建缓存 | dotnet 增量编译（obj/ 缓存，NuGet 全局包缓存） |
+| 编译器/工具链 | .csproj TargetFramework（如 net10.0-windows10.0.19041.0） |
 
-**验收**：`cmake --build` 通过，所有依赖自动获取。
+**验收**：`dotnet build` 通过，所有依赖自动还原。
 
 ---
 
@@ -33,12 +33,12 @@
 **目标**：替换不安全/不正确的代码模式。
 
 典型改造：
-- `popen()` / `system()` -> reproc argv 数组
+- `Process.Start` 字符串拼接 -> `Process.ArgumentList` argv 数组
 - shell 字符串拼接 -> argv 传参
-- `std::thread::detach()` -> `std::jthread` + `stop_token`
-- 目录路径无转义 -> 引号包裹
+- 同步阻塞主线程 -> 异步/await（UI 线程不阻塞）
+- 目录路径无转义 -> 引号包裹/参数化传递
 
-**原则**：每组改造完成后立即 `cmake --build` 验证。
+**原则**：每组改造完成后立即 `dotnet build` + `dotnet test` 验证。
 
 ---
 
@@ -47,9 +47,9 @@
 **目标**：让不可测试的代码变得可测试。
 
 步骤：
-1. 将具体类改为虚基类 + 工厂函数
-2. 使用 Trompeloeil mock 编写测试用例
-3. 覆盖所有平台分支（Windows 可 mock macOS/Linux 实现）
+1. 将具体类改为接口（端口）+ 构造函数注入
+2. 使用手写 fakes 编写测试用例（xUnit）
+3. 覆盖所有分支（纯决策函数逐路径断言）
 
 **验收**：新增测试全部通过，不影响存量测试。
 
@@ -61,10 +61,10 @@
 
 | 问题 | 方案 |
 |------|------|
-| Cargo 缓存丢失 | 设置 CARGO_HOME 为独立目录 |
-| 测试二进制编译 | 在 CMakePresets 层设置 `FMT_TEST=OFF` |
-| 依赖源码重复下载 | 设置 CPM_SOURCE_CACHE |
-| 编译器缓存缺失 | sccache 集成 |
+| NuGet 包缓存丢失 | 默认全局包缓存（%USERPROFILE%\.nuget\packages） |
+| 测试二进制编译 | `dotnet test` 直接运行，不额外构建测试目标 |
+| 依赖重复下载 | NuGet 包缓存 + `obj/` 增量编译 |
+| 构建产物膨胀 | gitignore 排除 bin/obj，必要时清理 |
 
 ---
 
@@ -73,41 +73,7 @@
 **目标**：将验证自动化，防止回归。
 
 - GitHub Actions / GitLab CI 配置
-- 矩阵构建（ubuntu-latest + windows-latest）
-- 依赖缓存（Cargo + CPM）
-- 测试步骤（core_tests + platform_tests 并行）
-- 静态分析门禁（clang-tidy）
-
----
-
-## 第六阶段：源码瘦身
-
-**目标**：移除重构过程中产生的死代码和冗余包装。
-
-常见清理目标：
-- 冗余成员函数包装（`X::foo()` 仅调用 `core::foo()`）
-- 幽灵方法（只做校验不执行实际逻辑）
-- 不再需要的第三方依赖和 include
-- 不一致的工厂/接口模式
-
----
-
-## 第七阶段：交付就绪
-
-**目标**：项目可被下一个开发者理解和使用。
-
-- `.gitignore` 覆盖所有产物
-- `README.md` 反映最新架构
-- `.trellis/design.md` 记录关键决策
-- `.trellis/implement.md` 记录实现总结
-- 最终 QA 复审
-
----
-
-## 核心原则
-
-1. **每阶段均可独立验收**：每个阶段结束后 `cmake --build` + `ctest` 必须通过
-2. **一次只改一个抽象层**：不要同时替换依赖管理和重写核心逻辑
-3. **优先增量而非冷启动**：保留 build 目录，增量编译保持 10 秒以内
-4. **先搭测试再改代码**：第三阶段的可测试性是后续所有变更的安全网
-5. **变更必须可回滚**：每个改动点应是完整语法单元，不留下半截代码
+- Windows 单平台构建（WinUI 3 仅 Windows）
+- 依赖缓存（NuGet 包缓存）
+- 测试步骤（`dotnet test` 单命令全部）
+- 静态分析门禁（`dotnet build` 警告即错误，如条件允许）

@@ -12,7 +12,7 @@ launchpad/
     Ports/     所有端口接口（IConfigStore 等）
   src/launchpad.UseCases/      应用层：ItemUseCase, LaunchUseCase, SettingsUseCase
   src/launchpad.Infrastructure/ 基础设施：ConfigStore, ProcessSpawner, TerminalDetector
-  src/launchpad/               WinUI 3 外壳（unpackaged 自包含，Windows App SDK 2.2.0）
+  src/launchpad/               WinUI 3 外壳（unpackaged 自包含，Windows App SDK 2.3.1）
   tests/launchpad.Core.Tests/  xUnit（只引用三个纯库，零 WinUI 依赖）
 ```
 

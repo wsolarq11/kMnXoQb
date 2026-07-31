@@ -22,11 +22,10 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 ## Quick Reference
 
-- **Build**: `cd launchpad-rs && cargo build --release` (4.0 MB binary)
-- **Test**: `cd launchpad-rs && cargo test` (12 tests)
-- **Lint**: `cd launchpad-rs && cargo clippy --all-targets -- -D warnings`
-- **Safety**: NO shell exec — `std::process::Command` with argv array
-- **GUI**: egui immediate mode — no DSL, no callbacks
-- **CLI**: clap derive — `launchpad-rs {check,list,launch}`
-- **Config**: JSON Schema via schemars — single source of truth
-- **CI**: `.github/workflows/ci.yml` — 3-OS matrix
+- **Build**: `cd launchpad && dotnet build src/launchpad/launchpad.csproj`
+- **Test**: `cd launchpad && dotnet test tests/launchpad.Core.Tests/` (60 tests)
+- **Run**: `cd launchpad && dotnet run --project src/launchpad`
+- **Architecture**: hexagonal — UI → UseCases → Core ← Infrastructure (see CLAUDE.md)
+- **Safety**: NO shell exec — `Process.ArgumentList` argv array
+- **Config**: config/config.json + config/settings.json (snake_case, legacy-compatible)
+- **CI**: `.github/workflows/ci.yml` — Windows + dotnet build/test

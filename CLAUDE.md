@@ -36,7 +36,7 @@ launchpad/
 ```bash
 cd launchpad
 dotnet build src/launchpad/launchpad.csproj     # 构建
-dotnet test tests/launchpad.Core.Tests/         # 58 个测试
+dotnet test tests/launchpad.Core.Tests/         # 60 个测试
 dotnet run --project src/launchpad              # 运行
 ```
 
@@ -44,7 +44,7 @@ dotnet run --project src/launchpad              # 运行
 
 | 依赖 | 用途 |
 |------|------|
-| WinUI 3（Windows App SDK 2.2.0） | 原生 UI，unpackaged 自包含部署 |
+| WinUI 3（Windows App SDK 2.3.1） | 原生 UI，unpackaged 自包含部署 |
 | CommunityToolkit.Mvvm | MVVM 源生成器（ObservableObject/RelayCommand） |
 | Microsoft.Extensions.DependencyInjection | DI 容器 |
 | System.Text.Json | 序列化（snake_case 命名策略） |

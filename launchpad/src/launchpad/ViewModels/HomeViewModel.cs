@@ -96,7 +96,7 @@ public sealed partial class HomeViewModel : ObservableObject
 
     partial void OnConfirmEnabledChanged(bool value)
     {
-        _settings = SettingsUseCase.SetConfirmEnabled(_settings, value);
+        Settings = SettingsUseCase.SetConfirmEnabled(Settings, value);
         TrySave();
     }
 
@@ -156,11 +156,11 @@ public sealed partial class HomeViewModel : ObservableObject
     [RelayCommand]
     private void ToggleTheme()
     {
-        _settings = _settings.Theme switch
+        Settings = Settings.Theme switch
         {
-            "system" => SettingsUseCase.SetTheme(_settings, "dark"),
-            "dark" => SettingsUseCase.SetTheme(_settings, "light"),
-            _ => SettingsUseCase.SetTheme(_settings, "system"),
+            "system" => SettingsUseCase.SetTheme(Settings, "dark"),
+            "dark" => SettingsUseCase.SetTheme(Settings, "light"),
+            _ => SettingsUseCase.SetTheme(Settings, "system"),
         };
         TrySave();
     }
@@ -241,7 +241,7 @@ public sealed partial class HomeViewModel : ObservableObject
             return;
         }
 
-        _settings = SettingsUseCase.PushHistory(_settings, item.Name);
+        Settings = SettingsUseCase.PushHistory(Settings, item.Name);
         TrySave();
         StatusText = $"Launched: {item.Name}";
     }
@@ -280,7 +280,7 @@ public sealed partial class HomeViewModel : ObservableObject
     private void LaunchSelectedCore(List<LaunchItem> selected)
     {
         var (succeeded, failedIndexes) = _launchUseCase.LaunchMany(selected);
-        _settings = SettingsUseCase.PushHistoryMany(_settings, selected, failedIndexes.ToHashSet());
+        Settings = SettingsUseCase.PushHistoryMany(Settings, selected, failedIndexes.ToHashSet());
         TrySave();
         StatusText = succeeded == selected.Count
             ? $"Launched {succeeded} items"

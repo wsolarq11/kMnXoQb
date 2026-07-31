@@ -23,7 +23,7 @@
 |----------|----------|
 | `LaunchPlannerTests` | 断言 `PlanWindows` 产出的 argv 数组逐项（wt/pwsh/cmd 三路径、目录转义） |
 | `LaunchUseCaseTests` | fakes 断言 `IProcessSpawner` 收到的 argv，验证拒绝路径（空命令、未知项）不触达启动 |
-| `ItemValidatorTests` | 目录存在性、命令非空校验 |
+| `ItemValidatorTests` | name/command 非空校验（ItemValidator 不接触目录） |
 
 ### pre-commit hooks
 
@@ -46,7 +46,8 @@
 
 ## 路径安全
 
-- 启动目录必须通过 `ItemValidator` 校验（存在性 + 非空）
+- 启动目录存在性：编辑期经 `IDirectoryChecker`（`EditViewModel.DirectoryExists`）校验；启动期目录不存在时 `Process.Start` 抛异常，由 `LaunchUseCase.TryLaunch` 捕获并上报状态栏
+- name/command 非空由 `ItemValidator` 校验（目录不属于其职责）
 - 配置目录由 `ResolveConfigDir()` 从 exe 位置向上搜索含 `config/` 的祖先目录，不依赖进程工作目录
 
 ## 平台说明

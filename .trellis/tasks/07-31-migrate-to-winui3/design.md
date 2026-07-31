@@ -18,7 +18,12 @@
 
 ```
 launchpad/
-  src/launchpad/                    # WinUI 3 主程序（unpackaged）
+  src/launchpad.Core/               # 领域层类库（net10.0 纯函数，零 WinUI/IO 依赖，可被任意宿主引用）
+    Models/  LaunchItem.cs, AppSettings.cs, WindowState.cs, LaunchPlan.cs
+    Domain/  DangerousFlagDetector.cs, LaunchPlanner.cs, ItemValidator.cs
+    Ports/   IConfigStore.cs, IProcessSpawner.cs, ITerminalDetector.cs,
+             IDirectoryPicker.cs, IWindowService.cs
+  src/launchpad/                    # WinUI 3 主程序（unpackaged，引用 launchpad.Core）
     App.xaml / App.xaml.cs          # 入口、DI 容器、单实例
     MainWindow.xaml / MainWindow.cs # 主窗口 + Mica/Acrylic + 窗口状态恢复
     Views/
@@ -27,24 +32,21 @@ launchpad/
     ViewModels/
       HomeViewModel.cs              # 列表状态、命令、搜索过滤
       EditViewModel.cs              # 表单状态、校验、危险警告
-    Core/                           # 领域层：纯函数，零 WinUI/IO 依赖
-      Models/  LaunchItem.cs, AppSettings.cs, WindowState.cs, LaunchPlan.cs
-      Domain/  DangerousFlagDetector.cs, LaunchPlanner.cs, ItemValidator.cs
-    Application/                    # 应用层：用例编排
+    Application/                    # 应用层：用例编排（引用 Core，无 WinUI 依赖）
       ItemUseCase.cs, LaunchUseCase.cs, SettingsUseCase.cs
-    Infrastructure/                 # 基础设施层：端口实现
+    Infrastructure/                 # 基础设施层：端口实现（依赖 Core.Ports）
       ConfigStore.cs, ProcessSpawner.cs, TerminalDetector.cs,
       DirectoryPickerService.cs, SingleInstance.cs, WindowStateService.cs
-    Ports/                          # 端口接口（领域层定义，放 Core 或独立）
-      IConfigStore.cs, IProcessSpawner.cs, ITerminalDetector.cs,
-      IDirectoryPicker.cs
   tests/
-    launchpad.Core.Tests/           # 领域层 + 应用层测试（xUnit）
+    launchpad.Core.Tests/           # xUnit，只引用 launchpad.Core
       LaunchPlannerTests.cs, DangerousFlagTests.cs, ItemValidatorTests.cs,
       ConfigStoreTests.cs, LaunchUseCaseTests.cs
 ```
 
-分层规则：依赖箭头永远向下（UI → 应用 → 领域 ← 基础设施）。端口接口定义在 Core/Ports，由 Infrastructure 实现，DI 容器注入。
+分层规则：依赖箭头永远向下（UI/App → Application → Core ← Infrastructure）。端口接口定义在 `Core/Ports`，由 Infrastructure 实现，DI 容器注入。Core 为纯类库（net10.0），测试不接触 WinUI。
+
+> 修订注（2026-07-31，阶段 B 实现中）：原设计为单项目目录分层；实施时发现 xUnit 测试引用 WinUI 主项目会拉入 Windows 依赖，故领域层拆为独立类库 `launchpad.Core`。
+> 修订注 2（2026-07-31，阶段 C 实现中）：`Launchpad.Application` 命名空间与 `Microsoft.UI.Xaml.Application` 类名冲突（CS0118），应用层重命名为 `Launchpad.UseCases`（目录 `launchpad.UseCases`）；应用层与基础设施层均拆为独立 net10.0 类库，测试项目引用全部三个纯库、零 WinUI 依赖。
 
 ## 3. 数据模型映射（Rust → C#）
 

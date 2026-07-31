@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\launchpad.Core\launchpad.Core.csproj" />
+    <ProjectReference Include="..\launchpad.UseCases\launchpad.UseCases.csproj" />
+    <ProjectReference Include="..\launchpad.Infrastructure\launchpad.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

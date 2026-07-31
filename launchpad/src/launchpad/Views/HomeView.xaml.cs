@@ -25,13 +25,16 @@ public sealed partial class HomeView : Page
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(HomeViewModel.IsDark))
+        if (e.PropertyName == nameof(HomeViewModel.Theme))
         {
-            RequestedTheme = ViewModel.IsDark ? ElementTheme.Dark : ElementTheme.Light;
+            RequestedTheme = ViewModel.Theme switch
+            {
+                "dark" => ElementTheme.Dark,
+                "light" => ElementTheme.Light,
+                _ => ElementTheme.Default, // system：跟随 OS 主题
+            };
         }
     }
-
-    private void OnConfirmToggled(object sender, RoutedEventArgs e) => ViewModel.ToggleConfirmEnabledCommand.Execute(null);
 
     private void OnThemeToggle(object sender, RoutedEventArgs e) => ViewModel.ToggleThemeCommand.Execute(null);
 

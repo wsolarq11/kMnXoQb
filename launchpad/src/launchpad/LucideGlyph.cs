@@ -12,6 +12,7 @@ public static class LucideGlyph
     public const string Search = "\uF4AD";
     public const string Moon = "\uF3EB";
     public const string Sun = "\uF50F";
+    public const string Auto = "\uF512"; // sun-moon（跟随系统主题）
     public const string Pencil = "\uF43D";
     public const string Trash2 = "\uF546";
     public const string ChevronUp = "\uF1FD";

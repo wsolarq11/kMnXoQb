@@ -81,9 +81,13 @@ public partial class App : Application
         _window.Content = homeView;
 
         // Application.RequestedTheme is immutable after startup; theme lives on the content root.
-        homeView.RequestedTheme = _services.GetRequiredService<HomeViewModel>().IsDark
-            ? ElementTheme.Dark
-            : ElementTheme.Light;
+        // "system" maps to ElementTheme.Default, which follows the OS theme.
+        homeView.RequestedTheme = _services.GetRequiredService<HomeViewModel>().Theme switch
+        {
+            "dark" => ElementTheme.Dark,
+            "light" => ElementTheme.Light,
+            _ => ElementTheme.Default,
+        };
 
         _window.Activate();
 

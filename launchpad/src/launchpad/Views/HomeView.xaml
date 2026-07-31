@@ -28,8 +28,7 @@
                 Grid.Column="1"
                 Header="Confirm"
                 OnContent="" OffContent=""
-                IsOn="{x:Bind ViewModel.Settings.ConfirmEnabled, Mode=OneWay}"
-                Toggled="OnConfirmToggled" />
+                IsOn="{x:Bind ViewModel.ConfirmEnabled, Mode=TwoWay}" />
             <Button Grid.Column="2" ToolTipService.ToolTip="Toggle theme" Click="OnThemeToggle">
                 <FontIcon
                     Glyph="{x:Bind ViewModel.ThemeGlyph, Mode=OneWay}"

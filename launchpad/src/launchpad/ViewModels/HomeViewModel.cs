@@ -31,8 +31,11 @@ public sealed partial class HomeViewModel : ObservableObject
     [ObservableProperty]
     private AppSettings _settings = new();
 
+    /// <summary>TwoWay-bound to the Confirm toggle; the setter persists through
+    /// <see cref="SettingsUseCase"/>. OneWay+Toggled was racy (binding-driven IsOn
+    /// changes re-trigger Toggled, flipping state back).</summary>
     [ObservableProperty]
-    private bool _isDark;
+    private bool _confirmEnabled;
 
     public int ItemCount => _all.Count;
 
@@ -44,7 +47,15 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public bool HasStatus => !string.IsNullOrEmpty(_statusText);
 
-    public string ThemeGlyph => _isDark ? LucideGlyph.Sun : LucideGlyph.Moon;
+    public string Theme => _settings.Theme;
+
+    /// <summary>Glyph shows what the next click does; Auto for the system-following state.</summary>
+    public string ThemeGlyph => _settings.Theme switch
+    {
+        "dark" => LucideGlyph.Sun,
+        "light" => LucideGlyph.Moon,
+        _ => LucideGlyph.Auto,
+    };
 
     public HomeViewModel(
         ItemUseCase itemUseCase,
@@ -57,17 +68,30 @@ public sealed partial class HomeViewModel : ObservableObject
         _settingsUseCase = settingsUseCase;
         _dialogs = dialogs;
         _settings = settingsUseCase.Load();
-        _isDark = _settings.Theme == "dark";
+        _confirmEnabled = _settings.ConfirmEnabled;
         Load();
     }
 
     partial void OnSearchQueryChanged(string value) => RefreshItems();
 
-    partial void OnSettingsChanged(AppSettings value) => OnPropertyChanged(nameof(RecentName));
+    partial void OnSettingsChanged(AppSettings value)
+    {
+        OnPropertyChanged(nameof(RecentName));
+        OnPropertyChanged(nameof(Theme));
+        OnPropertyChanged(nameof(ThemeGlyph));
+        if (_confirmEnabled != value.ConfirmEnabled)
+        {
+            _confirmEnabled = value.ConfirmEnabled;
+        }
+    }
 
     partial void OnStatusTextChanged(string value) => OnPropertyChanged(nameof(HasStatus));
 
-    partial void OnIsDarkChanged(bool value) => OnPropertyChanged(nameof(ThemeGlyph));
+    partial void OnConfirmEnabledChanged(bool value)
+    {
+        _settings = SettingsUseCase.SetConfirmEnabled(_settings, value);
+        TrySave();
+    }
 
     private void Load()
     {
@@ -123,18 +147,17 @@ public sealed partial class HomeViewModel : ObservableObject
         StatusText = index is null ? "Added" : "Updated";
     }
 
+    /// <summary>Three-state cycle: system (follow OS) → dark → light → system.
+    /// "system" maps to ElementTheme.Default, which WinUI resolves to the OS theme.</summary>
     [RelayCommand]
     private void ToggleTheme()
     {
-        _isDark = !_isDark;
-        _settings = SettingsUseCase.SetTheme(_settings, _isDark ? "dark" : "light");
-        TrySave();
-    }
-
-    [RelayCommand]
-    private void ToggleConfirmEnabled()
-    {
-        _settings = SettingsUseCase.SetConfirmEnabled(_settings, !_settings.ConfirmEnabled);
+        _settings = _settings.Theme switch
+        {
+            "system" => SettingsUseCase.SetTheme(_settings, "dark"),
+            "dark" => SettingsUseCase.SetTheme(_settings, "light"),
+            _ => SettingsUseCase.SetTheme(_settings, "system"),
+        };
         TrySave();
     }
 

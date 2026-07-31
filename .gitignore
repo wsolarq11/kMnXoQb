@@ -47,3 +47,6 @@ launchpad/src/**/bin/
 launchpad/src/**/obj/
 launchpad/tests/**/bin/
 launchpad/tests/**/obj/
+
+# Publish output
+launchpad/publish/

@@ -2,6 +2,8 @@
 #
 # Windows 原生应用：单平台构建 + 测试。Rust/C++ 时代的多平台矩阵已随
 # 2026-07-31 WinUI 3 迁移移除。
+# 构建治理（2026-07-31）：NuGet 包缓存键基于 packages.lock.json（可复现恢复），
+# 供应链审计在 restore 后执行（warning 级别，不阻塞构建）。
 
 name: CI
 
@@ -26,8 +28,19 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('launchpad/**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Restore
         run: dotnet restore src/launchpad/launchpad.csproj
+
+      - name: Audit vulnerable packages
+        run: dotnet list package --vulnerable --include-transitive || echo "::warning::Vulnerable or unlisted packages detected; review above output"
 
       - name: Build (Release)
         run: dotnet build src/launchpad/launchpad.csproj --configuration Release --no-restore

@@ -33,4 +33,5 @@ internal static class Win32ErrorCode
     public const int FileNotFound = 2;
     public const int PathNotFound = 3;
     public const int AccessDenied = 5;
+    public const int InvalidDirectory = 267; // ERROR_DIRECTORY
 }

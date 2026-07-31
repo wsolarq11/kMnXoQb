@@ -45,7 +45,9 @@ public sealed class LaunchPlannerTests
         var plan = LaunchPlanner.PlanWindows(Item(), wtAvailable: false, pwshAvailable: false);
 
         Assert.Equal("cmd.exe", plan.Executable);
-        Assert.Equal(["/k", "cd /d \"D:\\projects\\demo\" && snow"], plan.Args);
+        // 目录经 WorkingDirectory 传递：cmd /k 不用标准 argv 引号规则，cd 拼接会坏
+        Assert.Equal(["/k", "snow"], plan.Args);
+        Assert.Equal(@"D:\projects\demo", plan.WorkingDirectory);
     }
 
     [Fact]
@@ -80,12 +82,6 @@ public sealed class LaunchPlannerTests
     }
 
     [Fact]
-    public void EscapeCmdQuotes_DoublesDoubleQuotes()
-    {
-        Assert.Equal(@"D:\a""""b", LaunchPlanner.EscapeCmdQuotes(@"D:\a""b"));
-    }
-
-    [Fact]
     public void PlanWindows_PwshFallback_EscapesDirectoryWithSingleQuote()
     {
         var plan = LaunchPlanner.PlanWindows(Item(dir: @"D:\a'b"), wtAvailable: false, pwshAvailable: true);
@@ -94,11 +90,12 @@ public sealed class LaunchPlannerTests
     }
 
     [Fact]
-    public void PlanWindows_CmdFallback_EscapesDirectoryWithDoubleQuote()
+    public void PlanWindows_CmdFallback_KeepsCommandAndUsesWorkingDirectory()
     {
         var plan = LaunchPlanner.PlanWindows(Item(dir: @"D:\a""b"), wtAvailable: false, pwshAvailable: false);
 
         Assert.Equal("/k", plan.Args[0]);
-        Assert.Equal("cd /d \"D:\\a\"\"b\" && snow", plan.Args[1]);
+        Assert.Equal("snow", plan.Args[1]);
+        Assert.Equal(@"D:\a""b", plan.WorkingDirectory);
     }
 }

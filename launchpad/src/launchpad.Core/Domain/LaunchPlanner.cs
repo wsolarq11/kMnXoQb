@@ -39,10 +39,14 @@ public static class LaunchPlanner
             };
         }
 
+        // cmd.exe does not parse its /k argument with standard argv quoting rules
+        // (\" is literal), so a cd-prefixed command breaks whenever the directory
+        // contains quotes or spaces (verified by TerminalContractTests). The working
+        // directory travels via ProcessStartInfo.WorkingDirectory instead.
         return new LaunchPlan
         {
             Executable = "cmd.exe",
-            Args = ["/k", $"cd /d \"{EscapeCmdQuotes(dir)}\" && {item.Command}"],
+            Args = ["/k", item.Command],
             WorkingDirectory = dir,
             IsDangerous = dangerous,
             TerminalOverride = item.Terminal,
@@ -51,7 +55,4 @@ public static class LaunchPlanner
 
     /// <summary>PowerShell single-quoted strings escape a quote by doubling it.</summary>
     public static string EscapePwshQuotes(string path) => path.Replace("'", "''", StringComparison.Ordinal);
-
-    /// <summary>cmd.exe doubled quotes inside a quoted argument collapse to one quote.</summary>
-    public static string EscapeCmdQuotes(string path) => path.Replace("\"", "\"\"", StringComparison.Ordinal);
 }

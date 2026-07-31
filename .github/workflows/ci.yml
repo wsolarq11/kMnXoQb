@@ -47,3 +47,6 @@ jobs:
 
       - name: Test
         run: dotnet test tests/launchpad.Core.Tests/ --configuration Release
+
+      - name: Contract tests (pwsh/cmd; wt skips on runners without Windows Terminal)
+        run: dotnet test tests/launchpad.IntegrationTests/ --configuration Release

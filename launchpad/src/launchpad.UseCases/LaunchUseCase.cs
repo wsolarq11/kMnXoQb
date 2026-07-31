@@ -70,7 +70,7 @@ public sealed class LaunchUseCase(IProcessSpawner spawner, ITerminalDetector det
         {
             return LaunchErrors.ProcessNotFound(plan.Executable);
         }
-        catch (Win32Exception e) when (e.NativeErrorCode == Win32ErrorCode.PathNotFound)
+        catch (Win32Exception e) when (e.NativeErrorCode is Win32ErrorCode.PathNotFound or Win32ErrorCode.InvalidDirectory)
         {
             return LaunchErrors.WorkingDirectoryMissing(plan.WorkingDirectory);
         }

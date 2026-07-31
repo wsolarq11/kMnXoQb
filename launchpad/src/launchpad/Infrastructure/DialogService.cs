@@ -6,16 +6,21 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Launchpad.Infrastructure;
 
-/// <summary>ContentDialog-backed confirmation. Requires an XamlRoot, supplied once by the host window.</summary>
+/// <summary>
+/// ContentDialog-backed confirmation. Requires an XamlRoot; the host element is
+/// captured at attach time and the XamlRoot is resolved lazily on each show —
+/// XamlRoot is not available right after Window.Activate (it is created during
+/// layout), so reading it at attach time yields null.
+/// </summary>
 public sealed class DialogService : IDialogService
 {
-    private XamlRoot? _xamlRoot;
+    private FrameworkElement? _host;
 
-    public void Attach(XamlRoot root) => _xamlRoot = root;
+    public void Attach(FrameworkElement host) => _host = host;
 
     public async Task<bool> ConfirmLaunchAsync(LaunchItem item, string? dangerReason)
     {
-        GuardXamlRoot();
+        var xamlRoot = GuardXamlRoot();
         var dangerText = dangerReason ?? DangerousFlagDetector.DangerousReason(item.Command);
         var content = new StackPanel
         {
@@ -44,29 +49,27 @@ public sealed class DialogService : IDialogService
             PrimaryButtonText = "Launch",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = _xamlRoot,
+            XamlRoot = xamlRoot,
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
     /// <summary>
-    /// Guards against a null XamlRoot: Attach happens after Activate in OnLaunched,
-    /// but a misordered host would otherwise surface a cryptic ArgumentException
-    /// from ContentDialog.ShowAsync.
+    /// Resolves the XamlRoot lazily: by the time a confirmation is shown the host
+    /// element is loaded into the visual tree, so XamlRoot is guaranteed non-null.
     /// </summary>
-    private void GuardXamlRoot()
+    private XamlRoot GuardXamlRoot()
     {
-        if (_xamlRoot is null)
-        {
-            throw new InvalidOperationException(
-                "DialogService.Attach was not called with a valid XamlRoot (host must Attach after window Activate).");
-        }
+        var root = _host?.XamlRoot
+            ?? throw new InvalidOperationException(
+                "DialogService.Attach was not called, or the host element is not loaded (must Attach the window content).");
+        return root;
     }
 
     /// <summary>Batch confirmation listing every item that needs confirmation.</summary>
     public async Task<bool> ConfirmBatchAsync(IReadOnlyList<LaunchItem> items)
     {
-        GuardXamlRoot();
+        var xamlRoot = GuardXamlRoot();
         var panel = new StackPanel { Spacing = 6 };
         foreach (var item in items)
         {
@@ -93,7 +96,7 @@ public sealed class DialogService : IDialogService
             PrimaryButtonText = "Launch All",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = _xamlRoot,
+            XamlRoot = xamlRoot,
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }

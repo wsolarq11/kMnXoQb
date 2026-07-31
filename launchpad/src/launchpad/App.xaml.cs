@@ -91,10 +91,10 @@ public partial class App : Application
 
         _window.Activate();
 
-        // XamlRoot is null before Activate; attach pickers/dialogs only after the
-        // window is active so ContentDialog.ShowAsync never sees a null XamlRoot.
+        // DialogService resolves XamlRoot lazily from the host element on each show
+        // (XamlRoot is not available right after Activate — it is created during layout).
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
         ((DirectoryPickerService)_services.GetRequiredService<IDirectoryPicker>()).Attach(hwnd);
-        ((DialogService)_services.GetRequiredService<IDialogService>()).Attach(homeView.XamlRoot);
+        ((DialogService)_services.GetRequiredService<IDialogService>()).Attach(homeView);
     }
 }

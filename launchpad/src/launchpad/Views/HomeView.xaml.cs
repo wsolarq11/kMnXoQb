@@ -3,6 +3,7 @@ using Launchpad.Core.Ports;
 using Launchpad.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.Win32;
 
 namespace Launchpad.Views;
 
@@ -10,6 +11,8 @@ public sealed partial class HomeView : Page
 {
     private readonly IDirectoryChecker _directoryChecker;
     private readonly IDirectoryPicker _directoryPicker;
+    private readonly DispatcherTimer _themeTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    private int? _lastAppsUseLightTheme;
 
     public HomeViewModel ViewModel { get; }
 
@@ -21,6 +24,47 @@ public sealed partial class HomeView : Page
         InitializeComponent();
         DataContext = ViewModel;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _lastAppsUseLightTheme = ReadAppsUseLightTheme();
+        _themeTimer.Tick += OnThemePollTick;
+        _themeTimer.Start();
+    }
+
+    /// <summary>
+    /// Unpackaged WinUI 3 apps do not react automatically to OS theme switches
+    /// while ElementTheme.Default is set, and UISettings events are unreliable
+    /// here — so poll the registry (the authoritative source for the Windows
+    /// "app mode" setting) and re-apply Default to force a refresh.
+    /// </summary>
+    private void OnThemePollTick(object? sender, object e)
+    {
+        var current = ReadAppsUseLightTheme();
+        if (current is null || current == _lastAppsUseLightTheme)
+        {
+            return;
+        }
+
+        _lastAppsUseLightTheme = current;
+        if (ViewModel.Theme != "system")
+        {
+            return;
+        }
+
+        RequestedTheme = ElementTheme.Light;
+        RequestedTheme = ElementTheme.Default;
+    }
+
+    private static int? ReadAppsUseLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") as int?;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

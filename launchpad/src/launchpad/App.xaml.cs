@@ -27,11 +27,26 @@ public partial class App : Application
             $"[{DateTime.Now:O}] {e.Exception}\n---\n");
     }
 
+    private static string ResolveConfigDir()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        for (var i = 0; i < 8 && dir is not null; i++, dir = dir.Parent)
+        {
+            if (Directory.Exists(Path.Combine(dir.FullName, "config")))
+            {
+                return Path.Combine(dir.FullName, "config");
+            }
+        }
+
+        return Path.Combine(AppContext.BaseDirectory, "config");
+    }
+
     private static ServiceProvider ConfigureServices()
     {
         var services = new ServiceCollection();
-        // D2: 配置目录保留 ../config 相对路径（与 Flutter 版语义一致：从项目根运行）。
-        var configDir = Path.GetFullPath(@"..\config");
+        // D2: 配置目录沿用项目根的 config/（与 Flutter 版一致）。
+        // 不依赖进程工作目录：从 exe 位置向上搜索含 config/ 的祖先目录。
+        var configDir = ResolveConfigDir();
 
         services.AddSingleton<IConfigStore>(new ConfigStore(configDir));
         services.AddSingleton<ITerminalDetector, TerminalDetector>();
@@ -39,6 +54,8 @@ public partial class App : Application
         services.AddSingleton<IDirectoryChecker, DirectoryChecker>();
         services.AddSingleton<IDirectoryPicker, DirectoryPickerService>();
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IWindowService, WindowStateService>();
+        services.AddSingleton<MainWindow>();
         services.AddSingleton<ItemUseCase>();
         services.AddSingleton<LaunchUseCase>();
         services.AddSingleton<SettingsUseCase>();
@@ -50,7 +67,14 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
+        var singleInstance = new SingleInstance();
+        if (!singleInstance.IsPrimary)
+        {
+            Exit();
+            return;
+        }
+
+        _window = _services.GetRequiredService<MainWindow>();
         var homeView = _services.GetRequiredService<HomeView>();
         _window.Content = homeView;
 

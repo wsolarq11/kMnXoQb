@@ -4,20 +4,17 @@
 
 ## 归档制品
 
-### _retired.zip
-
-项目早期完整快照，归档于 2026-07-25。压缩包内顶层目录为 `_retired/`，包含：
-
-| 文件 | 说明 |
+| 目录/文件 | 说明 |
 | --- | --- |
-| `WT Launcher.hta` | 早期 HTA 实现（22694 字节，早于当前在役版本） |
-| `config/config.json` | 早期配置 |
-| `config/config.json.bak` | 早期配置备份 |
-| `design/winforms-launcher.md` | 早期 WinForms 退役记录（3218 字节，早于当前 design 目录版本） |
-| `README.md` | 早期说明文档 |
+| `launchpad_flutter/` | 2026-07-30 的 Flutter + Rust（flutter_rust_bridge）实现，含 Awwwards 级视觉重设计；2026-07-31 被 WinUI 3 版取代 |
+| `launchpad-rs/` | 更早的纯 Rust + egui 实现；被 Flutter 版取代后保留 |
+| `_retired.zip` | 项目早期完整快照（2026-07-25，HTA 时代） |
+| `winui3-screenshots/` | WinUI 3 迁移验收截图（深/浅主题对照） |
 
-该快照在 Slint 跨平台迁移启动前归档，作为回溯参照。当前在役实现仍为根目录的 `WT Launcher.hta`。
+## 在役实现
+
+当前在役实现为 `launchpad/`（WinUI 3 + C#，.NET 10 LTS）。参见根 `CLAUDE.md`。
 
 ## 入库策略
 
-归档目录中的二进制压缩包不入库（见根目录 `.gitignore` 的 `archive/*.zip` 规则），仅本索引文件入库以保持可追溯。
+归档目录中的二进制压缩包不入库（见根 `.gitignore` 的 `archive/*.zip` 规则）；源码目录随 git 跟踪，构建产物由各子项目的 `.gitignore` 排除。

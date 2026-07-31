@@ -29,7 +29,10 @@
                 Header="Confirm"
                 OnContent="" OffContent=""
                 IsOn="{x:Bind ViewModel.ConfirmEnabled, Mode=TwoWay}" />
-            <Button Grid.Column="2" ToolTipService.ToolTip="Toggle theme" Click="OnThemeToggle">
+            <Button Grid.Column="2" Click="OnThemeToggle">
+                <ToolTipService.ToolTip>
+                    <ToolTip Content="主题：自动（跟随系统） — 点击循环：自动 → 深色 → 浅色" />
+                </ToolTipService.ToolTip>
                 <FontIcon
                     Glyph="{x:Bind ViewModel.ThemeGlyph, Mode=OneWay}"
                     FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide"

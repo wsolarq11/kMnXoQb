@@ -6,53 +6,49 @@
 
 ## 命令注入防御
 
-- ✅ 所有子进程通过 **reproc** 以 argv 数组启动（`reproc::process::start({...})`）
-- ✅ Windows 底层走 `CreateProcessW`，macOS/Linux 走 `posix_spawn`，无 shell 介入
-- ❌ 禁止使用 `std::system()`、`::popen()`、`::pclose()`
+- ✅ 所有子进程通过 **`Process.ArgumentList`** 以 argv 数组启动（`ProcessSpawner`，零字符串拼接）
+- ✅ Windows 底层走 `CreateProcessW`，无 shell 介入
+- ❌ 禁止 `Process.Start(string)` 传入拼接命令字符串
 - ❌ 禁止字符串拼接构造命令（`cmd + " " + args`）
-- ✅ 命令参数通过 `LaunchPlan.executable` + `LaunchPlan.args` 数组传递
-- ✅ 终端目录路径使用引号包裹（win: `cd /d "dir"`, mac: `quoted form of`, linux: `cd 'dir'`）
+- ✅ 命令参数通过 `LaunchPlan.Executable` + `LaunchPlan.Args` 数组传递（`LaunchPlanner.PlanWindows` 纯决策）
+- ✅ 终端目录路径参数化传递（wt.exe `-d <dir>`；pwsh fallback 单引号转义 `''`；cmd fallback 双引号转义 `""`）
 
 ## 安全规范自动化
 
-### clang-tidy 门禁
+### 单元测试覆盖（主要门禁）
 
-`.clang-tidy` 配置包含以下 WarningsAsErrors 规则：
+零 shell 约束由单测覆盖，提交前 `dotnet test tests/launchpad.Core.Tests/` 必须全绿：
 
-| 规则 | 目的 |
-|------|------|
-| `cert-msc30-c` / `cert-msc50-cpp` | 禁止使用不可预测的随机函数 |
-| `cert-err34-c` | 禁止格式字符串漏洞 |
-| `clang-analyzer-core.*` | 核心分析器 |
-| `bugprone-suspicious-string-compare` | 字符串比较错误 |
-| `clang-analyzer-deadcode.DeadStores` | 死代码检测 |
-| `concurrency-*` | 线程安全问题 |
+| 测试文件 | 覆盖内容 |
+|----------|----------|
+| `LaunchPlannerTests` | 断言 `PlanWindows` 产出的 argv 数组逐项（wt/pwsh/cmd 三路径、目录转义） |
+| `LaunchUseCaseTests` | fakes 断言 `IProcessSpawner` 收到的 argv，验证拒绝路径（空命令、未知项）不触达启动 |
+| `ItemValidatorTests` | 目录存在性、命令非空校验 |
 
 ### pre-commit hooks
 
-`.pre-commit-config.yaml` 包含：
+`.pre-commit-config.yaml` 包含（基础检查）：
 
 | Hook | 触发时机 | 用途 |
 |------|----------|------|
 | `trailing-whitespace` | 提交前 | 尾随空白 |
-| `cmake-lint` | 提交前 | CMake 语法检查 |
-| `clang-format` | 提交前 | C++ 代码格式化 |
-| `forbid-popen`（自定义） | 提交前 | 正则匹配 `::popen(` / `::system(` 并阻断 |
-| `clang-tidy`（manual） | 手动触发 | 完整静态分析 |
+| `end-of-file-fixer` | 提交前 | 文件末尾换行 |
+| `check-yaml` | 提交前 | YAML 语法 |
+| `check-added-large-files` | 提交前 | 大文件（>500KB）阻断 |
+| `check-merge-conflict` | 提交前 | 合并冲突标记 |
+| `mixed-line-ending`（--fix=crlf） | 提交前 | 行尾统一 CRLF（Windows 项目） |
 
 ## 配置安全
 
-- `core::is_dangerous()` 对所有用户自定义命令进行黑名单 + 启发式判定
-- `confirm_enabled` 控制是否在危险命令执行前弹出确认对话框
-- 危险命令即使 `confirm_enabled=false` 也应记录日志
+- `DangerousFlagDetector.IsDangerous()` 对用户自定义命令做 6 个 flag 子串匹配（dangerously / yolo / skip-permissions / bypass-approvals / bypass-sandbox / bypass.sandbox，不区分大小写）
+- 确认逻辑：`confirmEnabled && (item.Confirm || IsDangerous(command))`，危险命令在三处展示警告（编辑框/卡片/确认对话框）
+- 危险原因通过 `DangerousReason()` 返回供 UI 展示
 
 ## 路径安全
 
-- 启动目录必须校验 `std::filesystem::exists()`
-- 配置目录由 `PathResolver::create()` 统一管理，不信任用户传入的相对路径
+- 启动目录必须通过 `ItemValidator` 校验（存在性 + 非空）
+- 配置目录由 `ResolveConfigDir()` 从 exe 位置向上搜索含 `config/` 的祖先目录，不依赖进程工作目录
 
-## 跨平台安全一致性
+## 平台说明
 
-- Windows 和 POSIX 系统的安全等级应一致
-- 安全修复必须覆盖所有平台实现
-- 安全相关的测试必须在所有平台上运行
+- 当前仅 Windows（WinUI 3 原生应用，unpackaged 自包含）。安全修复与测试均以 Windows 为唯一目标平台。

@@ -73,3 +73,4 @@ dotnet test tests/launchpad.Core.Tests/launchpad.Core.Tests.csproj   # 单命令
 ## 历史
 
 - 2026-07-31：C++ → egui → Flutter+FRB 之后第四次重写，迁移到 WinUI 3 + C#。旧代码归档于 `archive/launchpad_flutter/` 与 `archive/launchpad-rs/`。
+- 2026-07-31（同日）：全图实施（审查发现修复）——CI 重写为 dotnet、文档/spec 全面更新为 C# 时代、删除 C++/HTA 残留（CMakePresets/.clang-format/WT Launcher.hta）、依赖升级（WindowsAppSDK 2.3.1、Test.Sdk 18、BuildTools 28000）、settings.json 停止跟踪（运行时状态不入库）。经三轮独立质检 PASS（60 测试全绿 + 实战运行验证）。后续 phase 提案见 `.trellis/tasks/07-31-execute-full-roadmap/phase2-proposal.md`（阶段 2 核心下沉 Rust + P/Invoke）。

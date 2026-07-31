@@ -1,3 +1,4 @@
+using ErrorOr;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
 
@@ -6,12 +7,25 @@ namespace Launchpad.UseCases;
 /// <summary>
 /// Item list orchestration: load/save through the store port; all list
 /// mutations are pure (return new lists, never mutate input).
+/// Persist failures return structured <see cref="ErrorOr{T}"/> errors so the UI
+/// never silently drops a save.
 /// </summary>
 public sealed class ItemUseCase(IConfigStore store)
 {
     public IReadOnlyList<LaunchItem> LoadItems() => store.ReadItems();
 
-    public void SaveItems(IReadOnlyList<LaunchItem> items) => store.WriteItems(items);
+    public ErrorOr<Success> SaveItems(IReadOnlyList<LaunchItem> items)
+    {
+        try
+        {
+            store.WriteItems(items);
+            return Result.Success;
+        }
+        catch (Exception e)
+        {
+            return StoreErrors.WriteFailed("config.json", e.Message);
+        }
+    }
 
     public static LaunchItem NewItem(string name, string directory, string command, bool confirm, string? terminal, IReadOnlyList<LaunchItem> existing)
     {

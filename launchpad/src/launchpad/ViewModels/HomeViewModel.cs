@@ -9,7 +9,7 @@ namespace Launchpad.ViewModels;
 
 /// <summary>
 /// Home screen state: item list, search, selection, theme, launch orchestration.
-/// All list mutations go through pure <see cref="ItemUseCase"/> functions.
+/// Thin shell over UseCases — all decisions live in the testable pure layer.
 /// </summary>
 public sealed partial class HomeViewModel : ObservableObject
 {
@@ -82,15 +82,27 @@ public sealed partial class HomeViewModel : ObservableObject
         {
             Items.Add(item);
         }
+
         OnPropertyChanged(nameof(ItemCount));
         OnPropertyChanged(nameof(SelectedCount));
         OnPropertyChanged(nameof(IsEmpty));
     }
 
-    private void Save()
+    /// <summary>Persist both files; surfaces the first failure in the status bar.</summary>
+    private bool TrySave()
     {
-        _itemUseCase.SaveItems(_all);
-        _settingsUseCase.Save(_settings);
+        var items = _itemUseCase.SaveItems(_all);
+        var settings = _settingsUseCase.Save(_settings);
+        if (items.IsError)
+        {
+            StatusText = $"Save failed: {items.FirstError.Description}";
+        }
+        else if (settings.IsError)
+        {
+            StatusText = $"Save failed: {settings.FirstError.Description}";
+        }
+
+        return !items.IsError && !settings.IsError;
     }
 
     /// <summary>Position of an item reference in the full list (used by the edit flow).</summary>
@@ -102,7 +114,11 @@ public sealed partial class HomeViewModel : ObservableObject
     public void ApplyEdit(LaunchItem edited, int? index)
     {
         _all = ItemUseCase.Upsert(_all, edited, index).ToList();
-        Save();
+        if (!TrySave())
+        {
+            return;
+        }
+
         RefreshItems();
         StatusText = index is null ? "Added" : "Updated";
     }
@@ -112,21 +128,21 @@ public sealed partial class HomeViewModel : ObservableObject
     {
         _isDark = !_isDark;
         _settings = SettingsUseCase.SetTheme(_settings, _isDark ? "dark" : "light");
-        Save();
+        TrySave();
     }
 
     [RelayCommand]
     private void ToggleConfirmEnabled()
     {
         _settings = SettingsUseCase.SetConfirmEnabled(_settings, !_settings.ConfirmEnabled);
-        Save();
+        TrySave();
     }
 
     [RelayCommand]
     private void ToggleSelectAll()
     {
         _all = ItemUseCase.ToggleSelectAll(_all).ToList();
-        Save();
+        TrySave();
         RefreshItems();
     }
 
@@ -140,7 +156,7 @@ public sealed partial class HomeViewModel : ObservableObject
         }
 
         _all = ItemUseCase.ToggleSelect(_all, index).ToList();
-        Save();
+        TrySave();
         RefreshItems();
     }
 
@@ -159,7 +175,7 @@ public sealed partial class HomeViewModel : ObservableObject
         }
 
         _all = ItemUseCase.Move(_all, index, delta).ToList();
-        Save();
+        TrySave();
         RefreshItems();
     }
 
@@ -173,7 +189,7 @@ public sealed partial class HomeViewModel : ObservableObject
         }
 
         _all = ItemUseCase.Delete(_all, index).ToList();
-        Save();
+        TrySave();
         RefreshItems();
         StatusText = "Deleted";
     }
@@ -191,15 +207,15 @@ public sealed partial class HomeViewModel : ObservableObject
             }
         }
 
-        var error = _launchUseCase.TryLaunch(item);
-        if (error is not null)
+        var result = _launchUseCase.TryLaunch(item);
+        if (result.IsError)
         {
-            StatusText = $"Launch failed: {error}";
+            StatusText = $"Launch failed: {result.FirstError.Description}";
             return;
         }
 
         _settings = SettingsUseCase.PushHistory(_settings, item.Name);
-        Save();
+        TrySave();
         StatusText = $"Launched: {item.Name}";
     }
 
@@ -237,18 +253,10 @@ public sealed partial class HomeViewModel : ObservableObject
     private void LaunchSelectedCore(List<LaunchItem> selected)
     {
         var (succeeded, failedIndexes) = _launchUseCase.LaunchMany(selected);
-        var failed = failedIndexes.ToHashSet();
-        foreach (var (item, index) in selected.Select((item, index) => (item, index)))
-        {
-            if (!failed.Contains(index))
-            {
-                _settings = SettingsUseCase.PushHistory(_settings, item.Name);
-            }
-        }
-
-        Save();
+        _settings = SettingsUseCase.PushHistoryMany(_settings, selected, failedIndexes.ToHashSet());
+        TrySave();
         StatusText = succeeded == selected.Count
             ? $"Launched {succeeded} items"
-            : $"Launched {succeeded} of {selected.Count} items ({failed.Count} failed)";
+            : $"Launched {succeeded} of {selected.Count} items ({failedIndexes.Count} failed)";
     }
 }

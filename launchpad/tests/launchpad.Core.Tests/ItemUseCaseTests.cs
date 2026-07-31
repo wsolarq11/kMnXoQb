@@ -65,6 +65,30 @@ public sealed class ItemUseCaseTests
     }
 
     [Fact]
+    public void SaveItems_ReturnsSuccessOnOk()
+    {
+        var store = new FakeStore();
+        var useCase = new ItemUseCase(store);
+
+        var result = useCase.SaveItems([Item("a")]);
+
+        Assert.False(result.IsError);
+        Assert.Single(store.Saved);
+    }
+
+    [Fact]
+    public void SaveItems_ReturnsStructuredErrorOnWriteFailure()
+    {
+        var useCase = new ItemUseCase(new ThrowingStore());
+
+        var result = useCase.SaveItems([Item("a")]);
+
+        Assert.True(result.IsError);
+        Assert.Equal("Store.WriteFailed", result.FirstError.Code);
+        Assert.Contains("config.json", result.FirstError.Description);
+    }
+
+    [Fact]
     public void Filter_MatchesNameDirectoryCommand_CaseInsensitive()
     {
         var items = new[] { Item("Alpha"), Item("Beta", "npm run dev") };
@@ -143,5 +167,33 @@ public sealed class ItemUseCaseTests
         var result = ItemUseCase.ToggleSelectAll(items);
 
         Assert.All(result, i => Assert.False(i.Selected));
+    }
+
+    internal sealed class FakeStore : IConfigStore
+    {
+        public List<IReadOnlyList<LaunchItem>> Saved { get; } = [];
+
+        public IReadOnlyList<LaunchItem> ReadItems() => [];
+
+        public AppSettings ReadSettings() => new();
+
+        public void WriteItems(IReadOnlyList<LaunchItem> items) => Saved.Add(items);
+
+        public void WriteSettings(AppSettings settings)
+        {
+        }
+    }
+
+    internal sealed class ThrowingStore : IConfigStore
+    {
+        public IReadOnlyList<LaunchItem> ReadItems() => [];
+
+        public AppSettings ReadSettings() => new();
+
+        public void WriteItems(IReadOnlyList<LaunchItem> items) =>
+            throw new IOException("disk full");
+
+        public void WriteSettings(AppSettings settings) =>
+            throw new IOException("disk full");
     }
 }

@@ -78,21 +78,23 @@ public sealed class LaunchUseCaseTests
     }
 
     [Fact]
-    public void TryLaunch_ReturnsNullOnSuccess()
+    public void TryLaunch_ReturnsSuccessOnOk()
     {
         var useCase = UseCase(out _, "wt.exe");
 
-        Assert.Null(useCase.TryLaunch(Item()));
+        Assert.False(useCase.TryLaunch(Item()).IsError);
     }
 
     [Fact]
-    public void TryLaunch_ReturnsErrorMessageOnSpawnFailure()
+    public void TryLaunch_ReturnsStructuredErrorOnSpawnFailure()
     {
         var useCase = new LaunchUseCase(new ThrowingSpawner(), new FakeTerminalDetector("wt.exe"));
 
         var error = useCase.TryLaunch(Item());
 
-        Assert.Contains("invalid directory", error);
+        Assert.True(error.IsError);
+        Assert.Contains("invalid directory", error.FirstError.Description);
+        Assert.Equal("Launch.Unknown", error.FirstError.Code);
     }
 
     [Fact]

@@ -35,4 +35,10 @@ public sealed record LaunchItem
 
     [JsonIgnore]
     public bool HasGroup => Group is not null;
+
+    [JsonIgnore]
+    public bool IsDangerous => Domain.DangerousFlagDetector.IsDangerous(Command);
+
+    [JsonIgnore]
+    public string? DangerReason => Domain.DangerousFlagDetector.DangerousReason(Command);
 }

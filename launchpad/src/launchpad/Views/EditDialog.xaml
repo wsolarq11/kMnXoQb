@@ -53,7 +53,7 @@
         </StackPanel>
         <TextBox
             Header="Terminal (optional)"
-            PlaceholderText="e.g. pwsh, gnome-terminal"
+            PlaceholderText="e.g. pwsh, cmd, powershell"
             Text="{x:Bind ViewModel.Terminal, Mode=TwoWay}" />
         <CheckBox
             Content="Confirm before launch"

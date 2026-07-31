@@ -1,4 +1,5 @@
 using Launchpad.Core.Domain;
+using Launchpad.Core.Models;
 using Xunit;
 
 namespace Launchpad.Core.Tests;
@@ -45,5 +46,39 @@ public sealed class DangerousFlagTests
     public void DangerousReason_ReturnsNullForSafeCommand()
     {
         Assert.Null(DangerousFlagDetector.DangerousReason("snow"));
+    }
+
+    [Fact]
+    public void LaunchItem_ExposesDangerFlagsWithoutSerialization()
+    {
+        var item = new LaunchItem
+        {
+            Name = "codex",
+            Directory = @"D:\x",
+            Command = "codex --dangerously-bypass-approvals-and-sandbox",
+            Confirm = false,
+            Id = "codex",
+        };
+
+        Assert.True(item.IsDangerous);
+        Assert.Equal("contains --dangerously flag", item.DangerReason);
+    }
+
+    [Fact]
+    public void LaunchItem_DangerFlagsAreNotSerialized()
+    {
+        var item = new LaunchItem
+        {
+            Name = "codex",
+            Directory = @"D:\x",
+            Command = "codex --dangerously-bypass-approvals-and-sandbox",
+            Confirm = false,
+            Id = "codex",
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(item, Launchpad.Core.Serialization.LauncherJson.Options);
+
+        Assert.DoesNotContain("\"is_dangerous\"", json);
+        Assert.DoesNotContain("\"danger_reason\"", json);
     }
 }

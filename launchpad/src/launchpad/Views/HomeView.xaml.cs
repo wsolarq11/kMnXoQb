@@ -75,7 +75,7 @@ public sealed partial class HomeView : Page
         if (result == ContentDialogResult.Primary)
         {
             int? index = item is null ? null : ViewModel.IndexOf(item);
-            ViewModel.ApplyEdit(vm.BuildItem(), index);
+            ViewModel.ApplyEdit(vm.BuildItem(ViewModel.AllItems), index);
         }
         else if (result == ContentDialogResult.Secondary && item is not null)
         {

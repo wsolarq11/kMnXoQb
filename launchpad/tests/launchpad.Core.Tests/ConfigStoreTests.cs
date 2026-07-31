@@ -39,6 +39,16 @@ public sealed class ConfigStoreTests : IDisposable
     }
 
     [Fact]
+    public void Constructor_CreatesConfigDirectory()
+    {
+        var nested = Path.Combine(_dir, "a", "b");
+        var store = new ConfigStore(nested);
+
+        Assert.True(Directory.Exists(nested));
+        Assert.NotNull(store);
+    }
+
+    [Fact]
     public void WriteThenReadItems_RoundTrips()
     {
         var store = NewStore();

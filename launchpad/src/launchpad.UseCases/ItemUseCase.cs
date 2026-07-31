@@ -13,7 +13,7 @@ public sealed class ItemUseCase(IConfigStore store)
 
     public void SaveItems(IReadOnlyList<LaunchItem> items) => store.WriteItems(items);
 
-    public static LaunchItem NewItem(string name, string directory, string command, bool confirm, string? terminal)
+    public static LaunchItem NewItem(string name, string directory, string command, bool confirm, string? terminal, IReadOnlyList<LaunchItem> existing)
     {
         return new LaunchItem
         {
@@ -21,10 +21,32 @@ public sealed class ItemUseCase(IConfigStore store)
             Directory = directory,
             Command = command,
             Confirm = confirm,
-            Id = name.Replace(' ', '_'),
+            Id = GenerateId(existing, name),
             Selected = false,
             Terminal = string.IsNullOrWhiteSpace(terminal) ? null : terminal.Trim(),
         };
+    }
+
+    /// <summary>
+    /// Legacy-compatible id derivation: lowercase, spaces to underscores, and a
+    /// numeric suffix when the base id collides with an existing item.
+    /// </summary>
+    public static string GenerateId(IReadOnlyList<LaunchItem> items, string name)
+    {
+        var baseId = name.Trim().ToLowerInvariant().Replace(' ', '_');
+        if (!items.Any(i => i.Id == baseId))
+        {
+            return baseId;
+        }
+
+        for (var n = 2; ; n++)
+        {
+            var candidate = $"{baseId}_{n}";
+            if (!items.Any(i => i.Id == candidate))
+            {
+                return candidate;
+            }
+        }
     }
 
     public static IReadOnlyList<LaunchItem> Filter(IReadOnlyList<LaunchItem> items, string query)

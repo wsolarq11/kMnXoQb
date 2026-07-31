@@ -47,4 +47,38 @@ public sealed class DialogService : IDialogService
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
+
+    /// <summary>Batch confirmation listing every item that needs confirmation.</summary>
+    public async Task<bool> ConfirmBatchAsync(IReadOnlyList<LaunchItem> items)
+    {
+        var panel = new StackPanel { Spacing = 6 };
+        foreach (var item in items)
+        {
+            var dangerText = DangerousFlagDetector.DangerousReason(item.Command);
+            var text = new TextBlock
+            {
+                Text = $"{item.Name}: {item.Command}",
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas"),
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+            };
+            if (dangerText is not null)
+            {
+                text.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["DangerBrush"];
+            }
+
+            panel.Children.Add(text);
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = $"Confirm {items.Count} launches",
+            Content = panel,
+            PrimaryButtonText = "Launch All",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = _xamlRoot,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
 }

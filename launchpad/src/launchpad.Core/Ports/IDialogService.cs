@@ -6,4 +6,7 @@ namespace Launchpad.Core.Ports;
 public interface IDialogService
 {
     Task<bool> ConfirmLaunchAsync(LaunchItem item, string? dangerReason);
+
+    /// <summary>Batch confirmation listing every item that needs confirmation.</summary>
+    Task<bool> ConfirmBatchAsync(IReadOnlyList<LaunchItem> items);
 }

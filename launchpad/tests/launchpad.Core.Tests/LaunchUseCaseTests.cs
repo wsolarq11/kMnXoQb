@@ -7,14 +7,14 @@ namespace Launchpad.Core.Tests;
 
 public sealed class LaunchUseCaseTests
 {
-    private static LaunchItem Item(string command = "snow", bool confirm = false)
+    private static LaunchItem Item(string name = "demo", string command = "snow", bool confirm = false)
         => new()
         {
-            Name = "demo",
+            Name = name,
             Directory = @"D:\projects\demo",
             Command = command,
             Confirm = confirm,
-            Id = "demo",
+            Id = name.Replace(' ', '_'),
             Selected = false,
         };
 
@@ -105,10 +105,90 @@ public sealed class LaunchUseCaseTests
         Assert.Equal(["new", "a", "b"], result);
     }
 
+    [Fact]
+    public void PushHistory_RemovesDuplicateBeforePrepending()
+    {
+        var history = new List<string> { "a", "b", "a" };
+
+        var result = LaunchUseCase.PushHistory(history, "a", max: 10);
+
+        Assert.Equal(["a", "b"], result);
+    }
+
+    [Fact]
+    public void PushHistory_NoDuplicateWhenAbsent()
+    {
+        var result = LaunchUseCase.PushHistory(["x", "y"], "z", max: 10);
+
+        Assert.Equal(["z", "x", "y"], result);
+    }
+
+    [Fact]
+    public void RequireConfirm_ReturnsOnlyItemsNeedingConfirmation()
+    {
+        var settings = new AppSettings { ConfirmEnabled = true };
+        var useCase = UseCase(out _);
+        var items = new[]
+        {
+            Item(confirm: false),                    // 不需要
+            Item(command: "claude --yolo", confirm: false),  // 危险 → 需要
+            Item(confirm: true),                     // item.confirm → 需要
+        };
+
+        var result = useCase.RequireConfirm(settings, items);
+
+        Assert.Equal([items[1], items[2]], result);
+    }
+
+    [Fact]
+    public void RequireConfirm_EmptyWhenGlobalOff()
+    {
+        var useCase = UseCase(out _);
+        var items = new[] { Item(command: "claude --yolo") };
+
+        Assert.Empty(useCase.RequireConfirm(new AppSettings { ConfirmEnabled = false }, items));
+    }
+
+    [Fact]
+    public void LaunchMany_AllSucceed()
+    {
+        var useCase = new LaunchUseCase(new FakeSpawner(), new FakeTerminalDetector("wt.exe"));
+        var items = new[] { Item(command: "a"), Item(command: "b") };
+
+        var (succeeded, failed) = useCase.LaunchMany(items);
+
+        Assert.Equal(2, succeeded);
+        Assert.Empty(failed);
+    }
+
+    [Fact]
+    public void LaunchMany_CollectsFailedIndexes()
+    {
+        var items = new[] { Item(command: "ok"), Item(command: "fail"), Item(command: "ok2") };
+        var useCase = new LaunchUseCase(new PartialFakeSpawner(), new FakeTerminalDetector("wt.exe"));
+
+        var (succeeded, failed) = useCase.LaunchMany(items);
+
+        Assert.Equal(2, succeeded);
+        Assert.Equal([1], failed);
+    }
+
     internal sealed class ThrowingSpawner : IProcessSpawner
     {
         public void Launch(LaunchPlan plan) =>
             throw new InvalidOperationException("invalid directory");
+    }
+
+    /// <summary>Throws when the plan contains the marker "fail" command.</summary>
+    internal sealed class PartialFakeSpawner : IProcessSpawner
+    {
+        public void Launch(LaunchPlan plan)
+        {
+            if (plan.Args.Contains("fail"))
+            {
+                throw new InvalidOperationException("boom");
+            }
+        }
     }
 
     internal sealed class FakeSpawner : IProcessSpawner

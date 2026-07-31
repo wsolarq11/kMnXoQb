@@ -96,6 +96,9 @@ public sealed partial class HomeViewModel : ObservableObject
     /// <summary>Position of an item reference in the full list (used by the edit flow).</summary>
     public int IndexOf(LaunchItem item) => _all.FindIndex(i => ReferenceEquals(i, item));
 
+    /// <summary>Full unfiltered list, for id-collision checks when building new items.</summary>
+    public IReadOnlyList<LaunchItem> AllItems => _all;
+
     public void ApplyEdit(LaunchItem edited, int? index)
     {
         _all = ItemUseCase.Upsert(_all, edited, index).ToList();
@@ -204,12 +207,48 @@ public sealed partial class HomeViewModel : ObservableObject
     private void LaunchSelected()
     {
         var selected = _all.Where(i => i.Selected).ToList();
-        var failures = selected.Count(item => _launchUseCase.TryLaunch(item) is not null);
+        if (selected.Count == 0)
+        {
+            StatusText = string.Empty;
+            return;
+        }
 
-        StatusText = selected.Count == 0
-            ? string.Empty
-            : failures == 0
-                ? $"Launched {selected.Count} items"
-                : $"Launched {selected.Count - failures} of {selected.Count} items ({failures} failed)";
+        var confirmItems = _launchUseCase.RequireConfirm(_settings, selected);
+        if (confirmItems.Count > 0)
+        {
+            _ = ConfirmAndLaunchAsync(selected, confirmItems);
+            return;
+        }
+
+        LaunchSelectedCore(selected);
+    }
+
+    private async Task ConfirmAndLaunchAsync(List<LaunchItem> selected, IReadOnlyList<LaunchItem> confirmItems)
+    {
+        var ok = await _dialogs.ConfirmBatchAsync(confirmItems);
+        if (!ok)
+        {
+            return;
+        }
+
+        LaunchSelectedCore(selected);
+    }
+
+    private void LaunchSelectedCore(List<LaunchItem> selected)
+    {
+        var (succeeded, failedIndexes) = _launchUseCase.LaunchMany(selected);
+        var failed = failedIndexes.ToHashSet();
+        foreach (var (item, index) in selected.Select((item, index) => (item, index)))
+        {
+            if (!failed.Contains(index))
+            {
+                _settings = SettingsUseCase.PushHistory(_settings, item.Name);
+            }
+        }
+
+        Save();
+        StatusText = succeeded == selected.Count
+            ? $"Launched {succeeded} items"
+            : $"Launched {succeeded} of {selected.Count} items ({failed.Count} failed)";
     }
 }

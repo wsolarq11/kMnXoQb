@@ -22,6 +22,33 @@ public sealed class LaunchUseCase(IProcessSpawner spawner, ITerminalDetector det
 
     public void Launch(LaunchItem item) => spawner.Launch(Plan(item));
 
+    /// <summary>Items that must be confirmed before launching (confirm on, or dangerous).</summary>
+    public IReadOnlyList<LaunchItem> RequireConfirm(AppSettings settings, IReadOnlyList<LaunchItem> items) =>
+        items.Where(i => NeedsConfirm(settings, i)).ToList();
+
+    /// <summary>
+    /// Batch launch with per-item error capture. Returns the count of successful
+    /// launches and the indexes (into <paramref name="items"/>) that failed.
+    /// </summary>
+    public (int Succeeded, List<int> FailedIndexes) LaunchMany(IReadOnlyList<LaunchItem> items)
+    {
+        var succeeded = 0;
+        var failedIndexes = new List<int>();
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (TryLaunch(items[i]) is null)
+            {
+                succeeded++;
+            }
+            else
+            {
+                failedIndexes.Add(i);
+            }
+        }
+
+        return (succeeded, failedIndexes);
+    }
+
     /// <summary>
     /// Spawn with error capture: returns a message on failure (invalid directory,
     /// missing terminal), null on success. The UI surfaces the message in the
@@ -40,12 +67,12 @@ public sealed class LaunchUseCase(IProcessSpawner spawner, ITerminalDetector det
         }
     }
 
-    /// <summary>Prepend to launch history, capped at <paramref name="max"/> entries
-    /// (matches legacy behavior: no deduplication).</summary>
+    /// <summary>Prepend to launch history, capped at <paramref name="max"/> entries.
+    /// Duplicates of the name are removed first (matches the legacy Rust behavior).</summary>
     public static List<string> PushHistory(List<string> history, string name, int max = 10)
     {
-        var combined = new List<string>(history);
-        combined.Insert(0, name);
-        return combined.Take(max).ToList();
+        var deduped = history.Where(h => h != name).ToList();
+        deduped.Insert(0, name);
+        return deduped.Take(max).ToList();
     }
 }

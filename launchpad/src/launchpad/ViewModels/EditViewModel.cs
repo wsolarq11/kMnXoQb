@@ -101,9 +101,9 @@ public sealed partial class EditViewModel : ObservableObject
         return errors.IsValid;
     }
 
-    public LaunchItem BuildItem()
+    public LaunchItem BuildItem(IReadOnlyList<LaunchItem> existing)
     {
-        var fresh = ItemUseCase.NewItem(_name.Trim(), _directory.Trim(), _command.Trim(), _confirm, _terminal);
+        var fresh = ItemUseCase.NewItem(_name.Trim(), _directory.Trim(), _command.Trim(), _confirm, _terminal, existing);
         return IsNew ? fresh : fresh with { Id = _originalId ?? fresh.Id };
     }
 

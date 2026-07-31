@@ -21,7 +21,7 @@ public sealed class ItemUseCaseTests
     [Fact]
     public void NewItem_GeneratesIdFromName()
     {
-        var item = ItemUseCase.NewItem("my tool", @"D:\x", "snow", confirm: true, terminal: "pwsh");
+        var item = ItemUseCase.NewItem("my tool", @"D:\x", "snow", confirm: true, terminal: "pwsh", existing: []);
 
         Assert.Equal("my_tool", item.Id);
         Assert.Equal("pwsh", item.Terminal);
@@ -30,9 +30,38 @@ public sealed class ItemUseCaseTests
     [Fact]
     public void NewItem_BlankTerminalBecomesNull()
     {
-        var item = ItemUseCase.NewItem("t", @"D:\x", "snow", confirm: true, terminal: "  ");
+        var item = ItemUseCase.NewItem("t", @"D:\x", "snow", confirm: true, terminal: "  ", existing: []);
 
         Assert.Null(item.Terminal);
+    }
+
+    [Fact]
+    public void GenerateId_LowercasesAndSwapsSpaces()
+    {
+        Assert.Equal("my tool", "my tool".ToLowerInvariant());
+        Assert.Equal("my_tool", ItemUseCase.GenerateId([], "My Tool"));
+    }
+
+    [Fact]
+    public void GenerateId_AppendsSuffixOnCollision()
+    {
+        var existing = new[] { Item("a_b") };
+
+        Assert.Equal("a_b_2", ItemUseCase.GenerateId(existing, "a b"));
+    }
+
+    [Fact]
+    public void GenerateId_SkipsTakenSuffixes()
+    {
+        var existing = new[] { Item("a_b"), Item("a_b_2") };
+
+        Assert.Equal("a_b_3", ItemUseCase.GenerateId(existing, "A B"));
+    }
+
+    [Fact]
+    public void GenerateId_TrimsName()
+    {
+        Assert.Equal("t", ItemUseCase.GenerateId([], "  t  "));
     }
 
     [Fact]

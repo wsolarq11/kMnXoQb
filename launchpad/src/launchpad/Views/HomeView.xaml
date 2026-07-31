@@ -118,7 +118,7 @@
         <!-- Card grid + empty state -->
         <Grid Grid.Row="3">
             <GridView
-                ItemsSource="{x:Bind ViewModel.Items}"
+                ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}"
                 SelectionMode="None"
                 IsItemClickEnabled="True"
                 ItemClick="OnCardClick"

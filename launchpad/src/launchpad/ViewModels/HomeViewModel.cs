@@ -20,7 +20,14 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private List<LaunchItem> _all = [];
 
-    public ObservableCollection<LaunchItem> Items { get; } = [];
+    /// <summary>
+    /// Replaced wholesale on refresh (not cleared in place): GridView recycles
+    /// containers on Clear/Add and x:Bind OneTime/OneWay leaves stale CheckBox
+    /// state on recycled containers, making selections appear to jump around.
+    /// </summary>
+    private ObservableCollection<LaunchItem> _items = [];
+
+    public ObservableCollection<LaunchItem> Items => _items;
 
     [ObservableProperty]
     private string _searchQuery = string.Empty;
@@ -101,11 +108,8 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void RefreshItems()
     {
-        Items.Clear();
-        foreach (var item in ItemUseCase.Filter(_all, _searchQuery))
-        {
-            Items.Add(item);
-        }
+        _items = new ObservableCollection<LaunchItem>(ItemUseCase.Filter(_all, _searchQuery));
+        OnPropertyChanged(nameof(Items));
 
         OnPropertyChanged(nameof(ItemCount));
         OnPropertyChanged(nameof(SelectedCount));

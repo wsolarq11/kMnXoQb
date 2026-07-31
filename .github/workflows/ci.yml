@@ -1,7 +1,7 @@
-# CI — Rust + egui (launchpad-rs)
+# CI — WinUI 3 + C# (.NET 10, launchpad/)
 #
-# C++ 构建已随 2026-07-29 迁移至 Rust 后移除。
-# 旧 C++ 代码仍在仓库中（src/、tests/），但不再作为 CI 门禁目标。
+# Windows 原生应用：单平台构建 + 测试。Rust/C++ 时代的多平台矩阵已随
+# 2026-07-31 WinUI 3 迁移移除。
 
 name: CI
 
@@ -12,42 +12,25 @@ on:
     branches: [main]
 
 jobs:
-  check:
-    name: check (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+  build:
+    name: build-and-test
+    runs-on: windows-latest
     defaults:
       run:
-        working-directory: launchpad-rs
+        working-directory: launchpad
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          components: clippy, rustfmt
+          dotnet-version: 10.0.x
 
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            launchpad-rs/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('launchpad-rs/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+      - name: Restore
+        run: dotnet restore src/launchpad/launchpad.csproj
 
-      - name: cargo fmt --check
-        run: cargo fmt --all -- --check
+      - name: Build (Release)
+        run: dotnet build src/launchpad/launchpad.csproj --configuration Release --no-restore
 
-      - name: cargo clippy
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: cargo test
-        run: cargo test --workspace
-
-      - name: cargo build --release
-        run: cargo build --release
+      - name: Test
+        run: dotnet test tests/launchpad.Core.Tests/ --configuration Release

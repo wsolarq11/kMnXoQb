@@ -80,15 +80,17 @@ public partial class App : Application
         var homeView = _services.GetRequiredService<HomeView>();
         _window.Content = homeView;
 
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
-        ((DirectoryPickerService)_services.GetRequiredService<IDirectoryPicker>()).Attach(hwnd);
-        ((DialogService)_services.GetRequiredService<IDialogService>()).Attach(homeView.XamlRoot);
-
         // Application.RequestedTheme is immutable after startup; theme lives on the content root.
         homeView.RequestedTheme = _services.GetRequiredService<HomeViewModel>().IsDark
             ? ElementTheme.Dark
             : ElementTheme.Light;
 
         _window.Activate();
+
+        // XamlRoot is null before Activate; attach pickers/dialogs only after the
+        // window is active so ContentDialog.ShowAsync never sees a null XamlRoot.
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+        ((DirectoryPickerService)_services.GetRequiredService<IDirectoryPicker>()).Attach(hwnd);
+        ((DialogService)_services.GetRequiredService<IDialogService>()).Attach(homeView.XamlRoot);
     }
 }

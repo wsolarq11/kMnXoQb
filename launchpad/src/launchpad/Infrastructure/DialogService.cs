@@ -15,6 +15,7 @@ public sealed class DialogService : IDialogService
 
     public async Task<bool> ConfirmLaunchAsync(LaunchItem item, string? dangerReason)
     {
+        GuardXamlRoot();
         var dangerText = dangerReason ?? DangerousFlagDetector.DangerousReason(item.Command);
         var content = new StackPanel
         {
@@ -48,9 +49,24 @@ public sealed class DialogService : IDialogService
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
+    /// <summary>
+    /// Guards against a null XamlRoot: Attach happens after Activate in OnLaunched,
+    /// but a misordered host would otherwise surface a cryptic ArgumentException
+    /// from ContentDialog.ShowAsync.
+    /// </summary>
+    private void GuardXamlRoot()
+    {
+        if (_xamlRoot is null)
+        {
+            throw new InvalidOperationException(
+                "DialogService.Attach was not called with a valid XamlRoot (host must Attach after window Activate).");
+        }
+    }
+
     /// <summary>Batch confirmation listing every item that needs confirmation.</summary>
     public async Task<bool> ConfirmBatchAsync(IReadOnlyList<LaunchItem> items)
     {
+        GuardXamlRoot();
         var panel = new StackPanel { Spacing = 6 };
         foreach (var item in items)
         {

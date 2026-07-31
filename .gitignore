@@ -42,6 +42,7 @@ wt-last-out.txt
 Thumbs.db
 
 # WinUI 3 / .NET build artifacts
-launchpad/src/launchpad/bin/
-launchpad/src/launchpad/obj/
-launchpad/tests/
+launchpad/src/**/bin/
+launchpad/src/**/obj/
+launchpad/tests/**/bin/
+launchpad/tests/**/obj/

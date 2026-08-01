@@ -1,5 +1,8 @@
 //! Item CRUD commands: all mutations go through the pure core functions and
 //! persist through the store; the frontend never mutates the list locally.
+//!
+//! Each command is a thin State-unwrapping shell over a testable `*_impl`
+//! function that takes `&AppState` directly (no Tauri runtime needed).
 
 use tauri::State;
 
@@ -21,14 +24,19 @@ pub struct ItemInput {
 
 #[tauri::command]
 pub fn list_items(state: State<'_, AppState>) -> ItemsPayload {
+    list_items_impl(&state)
+}
+
+pub fn list_items_impl(state: &AppState) -> ItemsPayload {
     state.items.load_items()
 }
 
 #[tauri::command]
-pub fn create_item(
-    state: State<'_, AppState>,
-    input: ItemInput,
-) -> Result<LaunchItem, AppError> {
+pub fn create_item(state: State<'_, AppState>, input: ItemInput) -> Result<LaunchItem, AppError> {
+    create_item_impl(&state, input)
+}
+
+pub fn create_item_impl(state: &AppState, input: ItemInput) -> Result<LaunchItem, AppError> {
     let mut all = state.items.all_items();
     let item = items::new_item(
         &input.name,
@@ -49,10 +57,19 @@ pub fn update_item(
     id: String,
     input: ItemInput,
 ) -> Result<LaunchItem, AppError> {
+    update_item_impl(&state, id, input)
+}
+
+pub fn update_item_impl(
+    state: &AppState,
+    id: String,
+    input: ItemInput,
+) -> Result<LaunchItem, AppError> {
     let all = state.items.all_items();
-    let index = all.iter().position(|i| i.id == id).ok_or_else(|| {
-        AppError::Unknown(format!("Item not found: {id}"))
-    })?;
+    let index = all
+        .iter()
+        .position(|i| i.id == id)
+        .ok_or_else(|| AppError::Unknown(format!("Item not found: {id}")))?;
     let existing = &all[index];
     let item = LaunchItem {
         name: input.name,
@@ -72,20 +89,30 @@ pub fn update_item(
 
 #[tauri::command]
 pub fn delete_item(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
+    delete_item_impl(&state, id)
+}
+
+pub fn delete_item_impl(state: &AppState, id: String) -> Result<(), AppError> {
     let all = state.items.all_items();
-    let index = all.iter().position(|i| i.id == id).ok_or_else(|| {
-        AppError::Unknown(format!("Item not found: {id}"))
-    })?;
+    let index = all
+        .iter()
+        .position(|i| i.id == id)
+        .ok_or_else(|| AppError::Unknown(format!("Item not found: {id}")))?;
     let updated = items::delete(&all, index);
     state.items.save_items(&updated)
 }
 
 #[tauri::command]
 pub fn move_item(state: State<'_, AppState>, id: String, delta: i32) -> Result<(), AppError> {
+    move_item_impl(&state, id, delta)
+}
+
+pub fn move_item_impl(state: &AppState, id: String, delta: i32) -> Result<(), AppError> {
     let all = state.items.all_items();
-    let index = all.iter().position(|i| i.id == id).ok_or_else(|| {
-        AppError::Unknown(format!("Item not found: {id}"))
-    })?;
+    let index = all
+        .iter()
+        .position(|i| i.id == id)
+        .ok_or_else(|| AppError::Unknown(format!("Item not found: {id}")))?;
     let updated = items::move_item(&all, index, delta);
     state.items.save_items(&updated)
 }
@@ -93,11 +120,11 @@ pub fn move_item(state: State<'_, AppState>, id: String, delta: i32) -> Result<(
 /// Target-state (not flip) semantics; resolved by stable id (idempotent under
 /// collection rebuilds).
 #[tauri::command]
-pub fn set_select(
-    state: State<'_, AppState>,
-    id: String,
-    target: bool,
-) -> Result<(), AppError> {
+pub fn set_select(state: State<'_, AppState>, id: String, target: bool) -> Result<(), AppError> {
+    set_select_impl(&state, id, target)
+}
+
+pub fn set_select_impl(state: &AppState, id: String, target: bool) -> Result<(), AppError> {
     let all = state.items.all_items();
     let updated = items::set_select_by_id(&all, &id, target);
     state.items.save_items(&updated)
@@ -105,6 +132,10 @@ pub fn set_select(
 
 #[tauri::command]
 pub fn toggle_select_all(state: State<'_, AppState>) -> Result<(), AppError> {
+    toggle_select_all_impl(&state)
+}
+
+pub fn toggle_select_all_impl(state: &AppState) -> Result<(), AppError> {
     let all = state.items.all_items();
     let updated = items::toggle_select_all(&all);
     state.items.save_items(&updated)

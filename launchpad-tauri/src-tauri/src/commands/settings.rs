@@ -1,5 +1,7 @@
 //! Settings commands: three-state theme/language cycles decided in the core
 //! (C# had these cycles in the ViewModel; they moved to pure functions).
+//!
+//! `*_impl` functions take `&AppState` directly for runtime-free testing.
 
 use tauri::State;
 
@@ -10,12 +12,20 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
+    get_settings_impl(&state)
+}
+
+pub fn get_settings_impl(state: &AppState) -> Result<AppSettings, AppError> {
     state.settings.load()
 }
 
 /// Three-state cycle: system → dark → light → system.
 #[tauri::command]
 pub fn toggle_theme(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
+    toggle_theme_impl(&state)
+}
+
+pub fn toggle_theme_impl(state: &AppState) -> Result<AppSettings, AppError> {
     let settings = state.settings.load()?;
     let next = next_theme(&settings.theme);
     let updated = core_settings::set_theme(&settings, next);
@@ -26,6 +36,10 @@ pub fn toggle_theme(state: State<'_, AppState>) -> Result<AppSettings, AppError>
 /// Language setting cycle: auto → zh-CN → en-US → auto (C# LanguageService).
 #[tauri::command]
 pub fn toggle_language(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
+    toggle_language_impl(&state)
+}
+
+pub fn toggle_language_impl(state: &AppState) -> Result<AppSettings, AppError> {
     let settings = state.settings.load()?;
     let next = next_language(&settings.language);
     let updated = core_settings::set_language(&settings, next);
@@ -34,7 +48,14 @@ pub fn toggle_language(state: State<'_, AppState>) -> Result<AppSettings, AppErr
 }
 
 #[tauri::command]
-pub fn set_confirm_enabled(state: State<'_, AppState>, enabled: bool) -> Result<AppSettings, AppError> {
+pub fn set_confirm_enabled(
+    state: State<'_, AppState>,
+    enabled: bool,
+) -> Result<AppSettings, AppError> {
+    set_confirm_enabled_impl(&state, enabled)
+}
+
+pub fn set_confirm_enabled_impl(state: &AppState, enabled: bool) -> Result<AppSettings, AppError> {
     let settings = state.settings.load()?;
     let updated = core_settings::set_confirm_enabled(&settings, enabled);
     state.settings.save(&updated)?;

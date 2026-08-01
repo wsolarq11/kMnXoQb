@@ -19,6 +19,10 @@ pub struct ResolvedLanguage {
 
 #[tauri::command]
 pub fn get_language(state: State<'_, AppState>) -> Result<ResolvedLanguage, AppError> {
+    get_language_impl(&state)
+}
+
+pub fn get_language_impl(state: &AppState) -> Result<ResolvedLanguage, AppError> {
     let settings = state.settings.load()?;
     let setting = i18n::resolve(Some(&settings.language));
     let system = i18n::from_system_language(locale::first_system_language().as_deref());

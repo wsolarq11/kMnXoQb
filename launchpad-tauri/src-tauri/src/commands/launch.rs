@@ -1,6 +1,8 @@
 //! Launch commands: confirmation policy, single/batch launch with per-item
 //! error capture, history updates, selection clearing (all decisions in the
 //! core/app layers; this file only wires inputs and outputs).
+//!
+//! `*_impl` functions take `&AppState` directly for runtime-free testing.
 
 use std::collections::HashSet;
 
@@ -10,6 +12,7 @@ use crate::core::errors::AppError;
 use crate::core::i18n::LanguageKey;
 use crate::core::items;
 use crate::core::launch;
+use crate::core::models::LaunchItem;
 use crate::core::settings as core_settings;
 use crate::state::AppState;
 
@@ -27,7 +30,7 @@ pub struct LaunchManyResult {
     pub failed_indexes: Vec<usize>,
 }
 
-fn find(state: &AppState, id: &str) -> Result<crate::core::models::LaunchItem, AppError> {
+fn find(state: &AppState, id: &str) -> Result<LaunchItem, AppError> {
     let all = state.items.all_items();
     all.iter()
         .find(|i| i.id == id)
@@ -37,8 +40,12 @@ fn find(state: &AppState, id: &str) -> Result<crate::core::models::LaunchItem, A
 
 #[tauri::command]
 pub fn needs_confirm(state: State<'_, AppState>, id: String) -> Result<ConfirmInfo, AppError> {
+    needs_confirm_impl(&state, id)
+}
+
+pub fn needs_confirm_impl(state: &AppState, id: String) -> Result<ConfirmInfo, AppError> {
     let settings = state.settings.load()?;
-    let item = find(&state, &id)?;
+    let item = find(state, &id)?;
     Ok(ConfirmInfo {
         needs_confirm: launch::needs_confirm(&settings, &item),
         danger_key: item.danger_reason(),
@@ -47,7 +54,11 @@ pub fn needs_confirm(state: State<'_, AppState>, id: String) -> Result<ConfirmIn
 
 #[tauri::command]
 pub fn launch_item(state: State<'_, AppState>, id: String) -> Result<(), AppError> {
-    let item = find(&state, &id)?;
+    launch_item_impl(&state, id)
+}
+
+pub fn launch_item_impl(state: &AppState, id: String) -> Result<(), AppError> {
+    let item = find(state, &id)?;
     state
         .launch
         .try_launch(&item, |dir| std::path::Path::new(dir).exists())?;
@@ -60,7 +71,14 @@ pub fn launch_item(state: State<'_, AppState>, id: String) -> Result<(), AppErro
 }
 
 #[tauri::command]
-pub fn launch_many(state: State<'_, AppState>, ids: Vec<String>) -> Result<LaunchManyResult, AppError> {
+pub fn launch_many(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<LaunchManyResult, AppError> {
+    launch_many_impl(&state, ids)
+}
+
+pub fn launch_many_impl(state: &AppState, ids: Vec<String>) -> Result<LaunchManyResult, AppError> {
     let all = state.items.all_items();
     let selected: Vec<_> = ids
         .iter()

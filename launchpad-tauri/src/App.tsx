@@ -7,6 +7,7 @@ import { EmptyState } from "./components/EmptyState";
 import { EditDialog } from "./components/EditDialog";
 import { DeleteDialog } from "./components/DeleteDialog";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { AboutDialog } from "./components/AboutDialog";
 import { StatusBar } from "./components/StatusBar";
 import { applyTheme } from "./lib/theme";
 import { installGlobalKeys } from "./lib/keyboard";
@@ -23,6 +24,7 @@ function App() {
     pendingConfirm,
     loading,
     language,
+    aboutOpen,
     openNew,
     init,
     closeDialogs,
@@ -78,6 +80,7 @@ function App() {
       {(newDialogOpen || editing) && <EditDialog item={editing} />}
       {deleteTarget && <DeleteDialog target={deleteTarget} />}
       {pendingConfirm && <ConfirmDialog pending={pendingConfirm} />}
+      {aboutOpen && <AboutDialog />}
     </main>
   );
 }

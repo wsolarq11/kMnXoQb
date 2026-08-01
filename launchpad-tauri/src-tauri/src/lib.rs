@@ -11,8 +11,43 @@ use config::paths::detect_install_form;
 use state::AppState;
 use tauri::Manager;
 
+/// WebView2 Runtime presence check (the app cannot start without it; Win11
+/// ships it, Win10 — including LTSC — does not). Falls back to a native
+/// message box with install guidance instead of failing silently.
+fn webview2_available() -> bool {
+    let root = std::path::Path::new(r"C:\Program Files (x86)\Microsoft\EdgeWebView\Application");
+    if !root.is_dir() {
+        return false;
+    }
+    // A version subdirectory (e.g. 150.0.4078.105) proves a real install.
+    std::fs::read_dir(root)
+        .map(|entries| entries.flatten().any(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false)))
+        .unwrap_or(false)
+}
+
+fn warn_webview2_missing() {
+    use windows::Win32::UI::WindowsAndMessaging::{
+        MessageBoxW, MB_ICONWARNING, MB_OK, MB_SETFOREGROUND,
+    };
+    let title = windows::core::w!("Launchpad");
+    let msg = windows::core::w!(
+        "Launchpad 需要 Microsoft Edge WebView2 Runtime 才能运行。\n\n\
+         Windows 11 已内置；Windows 10 请访问\n\
+         https://developer.microsoft.com/microsoft-edge/webview2 安装后重试。"
+    );
+    // SAFETY: static wide strings; the call blocks until the user dismisses.
+    unsafe {
+        let _ = MessageBoxW(None, msg, title, MB_OK | MB_ICONWARNING | MB_SETFOREGROUND);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if !webview2_available() {
+        warn_webview2_missing();
+        return;
+    }
+
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))

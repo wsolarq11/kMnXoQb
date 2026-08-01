@@ -1,3 +1,4 @@
+import { Inbox, SearchX } from "lucide-react";
 import { useAppStore } from "../stores/useAppStore";
 import { t } from "../i18n/keys";
 
@@ -8,6 +9,7 @@ export function EmptyState() {
   if (noMatch) {
     return (
       <div className="empty-state">
+        <SearchX size={40} className="empty-icon" />
         <h2>{t("NoMatchTitle", language)}</h2>
         <p>{t("NoMatchSubtitle", language)}</p>
       </div>
@@ -16,6 +18,7 @@ export function EmptyState() {
   if (items.length > 0) return null;
   return (
     <div className="empty-state">
+      <Inbox size={40} className="empty-icon" />
       <h2>{t("EmptyTitle", language)}</h2>
       <p>{t("EmptySubtitle", language)}</p>
       <button className="primary-btn" onClick={openNew}>

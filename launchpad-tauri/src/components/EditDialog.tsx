@@ -55,7 +55,14 @@ export function EditDialog({ item }: Props) {
 
   return (
     <div className="modal-overlay" onClick={closeDialogs}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <form
+        className="modal"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+      >
         <h2>{t(isNew ? "EditTitleNew" : "EditTitleEdit", language)}</h2>
 
         <label>{t("FieldName", language)}</label>
@@ -88,14 +95,14 @@ export function EditDialog({ item }: Props) {
         {error && <p className="error-text">{error}</p>}
 
         <div className="modal-actions">
-          <button className="primary-btn" onClick={save}>
+          <button type="submit" className="primary-btn">
             {t("BtnSave", language)}
           </button>
-          <button className="ghost-btn" onClick={closeDialogs}>
+          <button type="button" className="ghost-btn" onClick={closeDialogs}>
             {t("BtnCancel", language)}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

@@ -15,7 +15,13 @@ export function DeleteDialog({ target }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={closeDialogs}>
+    <div
+      className="modal-overlay"
+      onClick={closeDialogs}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") void confirm();
+      }}
+    >
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>{t("DialogDeleteItemTitle", language)}</h2>
         <p>{format("DialogDeleteItemMessage", language, [target.name])}</p>

@@ -44,7 +44,12 @@ export function ConfirmDialog({ pending }: Props) {
 
   const confirmItems = items.filter((i) => pending.confirmIds.includes(i.id));
   return (
-    <div className="modal-overlay">
+    <div
+      className="modal-overlay"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") confirmPending();
+      }}
+    >
       <div className="modal">
         <h2>{format("DialogBatchTitle", language, [pending.confirmIds.length])}</h2>
         <ul className="confirm-list">

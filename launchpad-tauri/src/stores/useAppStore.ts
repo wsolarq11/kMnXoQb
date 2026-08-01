@@ -42,15 +42,18 @@ interface AppState {
   editing: LaunchItem | null;
   newDialogOpen: boolean;
   deleteTarget: LaunchItem | null;
+  aboutOpen: boolean;
 
   init: () => Promise<void>;
   refreshItems: () => Promise<void>;
   setSearchQuery: (q: string) => void;
   setStatus: (m: StatusMessage | null) => void;
+  setStatusAutoClear: (m: StatusMessage | null) => void;
   openNew: () => void;
   openEdit: (item: LaunchItem) => void;
   closeDialogs: () => void;
   askDelete: (item: LaunchItem) => void;
+  openAbout: () => void;
 
   createItem: (input: ItemInput) => Promise<boolean>;
   updateItem: (id: string, input: ItemInput) => Promise<boolean>;
@@ -68,6 +71,18 @@ interface AppState {
   toggleLanguage: () => Promise<void>;
   setConfirmEnabled: (enabled: boolean) => Promise<void>;
 }
+
+let statusTimer: number | undefined;
+
+// Success messages auto-clear after 3s; errors and recovery notes persist.
+const SUCCESS_KEYS: LanguageKey[] = [
+  "StatusAdded",
+  "StatusUpdated",
+  "StatusDeleted",
+  "StatusLaunched",
+  "StatusLaunchedN",
+  "StatusLaunchedPartial",
+];
 
 function failStatus(prefix: LanguageKey, e: unknown): StatusMessage {
   return { key: prefix, args: [commandErrorDetail(e)] };
@@ -89,6 +104,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   editing: null,
   newDialogOpen: false,
   deleteTarget: null,
+  aboutOpen: false,
 
   init: async () => {
     set({ loading: true });
@@ -120,16 +136,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSearchQuery: (q) => set({ searchQuery: q }),
   setStatus: (m) => set({ status: m }),
+  setStatusAutoClear: (m) => {
+    set({ status: m });
+    clearTimeout(statusTimer);
+    if (m && SUCCESS_KEYS.includes(m.key)) {
+      statusTimer = window.setTimeout(() => {
+        set({ status: null });
+      }, 3000);
+    }
+  },
   openNew: () => set({ newDialogOpen: true }),
   openEdit: (item) => set({ editing: item }),
-  closeDialogs: () => set({ editing: null, newDialogOpen: false, deleteTarget: null }),
+  closeDialogs: () => set({ editing: null, newDialogOpen: false, deleteTarget: null, aboutOpen: false }),
   askDelete: (item) => set({ deleteTarget: item }),
+  openAbout: () => set({ aboutOpen: true }),
 
   createItem: async (input) => {
     try {
       await api.createItem(input);
       await get().refreshItems();
-      set({ status: { key: "StatusAdded" } });
+      get().setStatusAutoClear({ key: "StatusAdded" });
       return true;
     } catch (e) {
       set({ status: failStatus("StatusSaveFailed", e) });
@@ -141,7 +167,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await api.updateItem(id, input);
       await get().refreshItems();
-      set({ status: { key: "StatusUpdated" } });
+      get().setStatusAutoClear({ key: "StatusUpdated" });
       return true;
     } catch (e) {
       set({ status: failStatus("StatusSaveFailed", e) });
@@ -153,7 +179,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await api.deleteItem(id);
       await get().refreshItems();
-      set({ status: { key: "StatusDeleted" } });
+      get().setStatusAutoClear({ key: "StatusDeleted" });
       return true;
     } catch (e) {
       set({ status: failStatus("StatusSaveFailed", e) });
@@ -276,15 +302,14 @@ async function runLaunchMany(
     const settings = await api.getSettings();
     set({ settings });
     const failed = result.failed_indexes.length;
-    set({
-      status:
-        failed === 0
-          ? { key: "StatusLaunchedN", args: [result.succeeded] }
-          : {
-              key: "StatusLaunchedPartial",
-              args: [result.succeeded, ids.length, failed],
-            },
-    });
+    useAppStore.getState().setStatusAutoClear(
+      failed === 0
+        ? { key: "StatusLaunchedN", args: [result.succeeded] }
+        : {
+            key: "StatusLaunchedPartial",
+            args: [result.succeeded, ids.length, failed],
+          },
+    );
   } catch (e) {
     set({ status: failStatus("StatusLaunchFailed", e) });
   }

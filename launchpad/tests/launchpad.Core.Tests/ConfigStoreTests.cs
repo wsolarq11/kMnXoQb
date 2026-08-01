@@ -96,7 +96,7 @@ public sealed class ConfigStoreTests : IDisposable
         // The backup holds the pre-overwrite state (first write: [good]).
         Assert.Single(items);
         Assert.Equal("good", items[0].Name);
-        Assert.NotNull(store.LastRecoveryNote);
+        Assert.NotNull(store.LastRecoveryNoteKey);
         // The good backup must survive recovery (WriteItems would have
         // overwritten it with the corrupt file; the recovery path must not).
         Assert.Contains("good", File.ReadAllText(Path.Combine(_dir, "config.json.bak")));

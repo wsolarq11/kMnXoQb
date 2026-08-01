@@ -8,6 +8,7 @@ Windows 原生启动器：在一个界面里集中管理并一键启动 AI CLI �
 - 终端自动回退：Windows Terminal（`wt.exe`）→ PowerShell（`pwsh.exe`）→ `cmd.exe`，按可用性逐级降级
 - 危险命令确认：命令含 `dangerously` / `yolo` / `skip-permissions` / `bypass-approvals` / `bypass-sandbox` 等 flag 时，在编辑框、卡片、确认对话框三处警告
 - 主题切换：跟随系统 / 浅色 / 深色（Win11 Mica，Win10 自动回退 Acrylic）
+- 中英双语界面：默认跟随系统语言，可手动循环切换（自动 → 中文 → English），实时生效
 - 单实例运行；窗口位置记忆（最小化离屏坐标自动纠偏）
 - 配置写盘前自动备份到 `config.json.bak`，损坏时自动恢复并在状态栏提示
 - 启动历史记录（最近启动的条目）
@@ -82,12 +83,13 @@ powershell -ExecutionPolicy Bypass -File publish.ps1
 {
   "confirm_enabled": false,
   "theme": "system",
+  "language": "auto",
   "launch_history": [],
   "window_state": { "x": 0, "y": 0, "width": 800, "height": 600 }
 }
 ```
 
-`theme` 取值 `system` / `dark` / `light`；未知字段在写回时保留，不丢未来版本数据。
+`theme` 取值 `system` / `dark` / `light`；`language` 取值 `auto`（跟随系统语言）/ `zh-CN` / `en-US`；未知字段在写回时保留，不丢未来版本数据。
 
 仓库根 `config/config.example.json` 为启动项模板，发布时拷入产物目录。
 

@@ -25,6 +25,7 @@
 {
   "confirm_enabled": true,
   "theme": "dark",
+  "language": "auto",
   "launch_history": [
     "recent",
     "old"

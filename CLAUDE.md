@@ -34,10 +34,12 @@ launchpad/
     Models/     LaunchItem, AppSettings, WindowState, LaunchPlan（不可变 record）
     Domain/     DangerousFlagDetector, LaunchPlanner, ItemValidator, WindowPosition（纯决策）
     Ports/      所有端口接口（IConfigStore, IProcessSpawner, IDialogService …）
+    Localization/ LanguageKey（稳定文案键）+ Translations（中英纯语言表）
     Serialization/ LauncherJson（System.Text.Json，snake_case 序列化，与旧 serde 格式字节兼容）
   src/launchpad.UseCases/       应用层：ItemUseCase, LaunchUseCase, SettingsUseCase
   src/launchpad.Infrastructure/ 基础设施：ConfigStore, ProcessSpawner, TerminalDetector
-  src/launchpad/                WinUI 3 外壳：App.xaml.cs（DI 组装）、ViewModels、Views
+  src/launchpad/                WinUI 3 外壳：App.xaml.cs（DI 组装）、ViewModels、Views、
+                                Localization/LanguageService（语言状态 + 热切换）
   tests/launchpad.Core.Tests/   xUnit 单元 + ArchUnitNET 架构测试 + Verify 快照测试
   tests/launchpad.IntegrationTests/ 契约测试（真实进程）
 ```
@@ -63,6 +65,7 @@ launchpad/
 - **启动目录不存在抛 `Win32Exception`**，NativeErrorCode=267（ERROR_DIRECTORY）而非 3。TryLaunch 把 267/3 都映射为 WorkingDirectoryMissing。
 - **x:Bind 在 DataTemplate 里访问外层**：用 `{Binding DataContext.X, ElementName=Root}` 或事件转发，x:Bind 默认绑定 item。
 - **System.Text.Json**：`PropertyNameCaseInsensitive=true` + `PropertyNamingPolicy.SnakeCaseLower`（写 snake_case 保持旧配置兼容）；record 相等性会被 JsonExtensionData 空字典破坏（测试用字段级断言）。
+- **i18n**：文案一律键引用（`Core/Localization/LanguageKey` + `Translations` 中英纯表），`settings.json` 的 `language` 字段（`auto` 跟随系统 / `zh-CN` / `en-US`）三层优先级：显式设置 > 系统语言 > 英文兜底。领域层返回 `LanguageKey?` 而非文案（`DangerousReason`、表单校验错误、`LastRecoveryNoteKey`）；XAML 用 ViewModel 文案属性或 `LanguageKeyTextConverter`；LanguageService 热切换全量刷新 + `RefreshItems()` 重建卡片。**ErrorOr 错误描述保持英文内部诊断**（有意决策，前缀本地化）。注意：`FirstOrDefault` 对值类型元组返回非空默认枚举（安全命令误报危险的坑，详见 spec 坑 #13）。
 
 ## 数据与配置
 

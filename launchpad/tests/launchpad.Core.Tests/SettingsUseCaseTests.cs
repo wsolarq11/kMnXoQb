@@ -45,4 +45,15 @@ public sealed class SettingsUseCaseTests
 
         Assert.Equal(["b", "a"], result.LaunchHistory);
     }
+
+    [Fact]
+    public void SetLanguage_UpdatesLanguageValue()
+    {
+        var settings = new AppSettings { Language = "auto" };
+
+        var result = SettingsUseCase.SetLanguage(settings, "zh-CN");
+
+        Assert.Equal("zh-CN", result.Language);
+        Assert.Equal("auto", settings.Language); // immutable: original untouched
+    }
 }

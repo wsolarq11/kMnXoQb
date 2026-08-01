@@ -1,20 +1,26 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Launchpad.Core.Domain;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
+using Launchpad.Localization;
 using Launchpad.UseCases;
 
 namespace Launchpad.ViewModels;
 
 /// <summary>
 /// Edit dialog form state: fields, live validation, danger warning,
-/// and directory picking through ports (no direct I/O).
+/// and directory picking through ports (no direct I/O). Validation and danger
+/// reasons are language-independent keys; the XAML translates them with
+/// LanguageKeyTextConverter against the current language.
 /// </summary>
 public sealed partial class EditViewModel : ObservableObject
 {
     private readonly IDirectoryChecker _directoryChecker;
     private readonly IDirectoryPicker _directoryPicker;
+    private readonly LanguageService _language;
     private readonly string? _originalId;
 
     // Partial properties (C# 13): AOT-compatible source generation (MVVMTK0045).
@@ -34,15 +40,19 @@ public sealed partial class EditViewModel : ObservableObject
     public partial bool Confirm { get; set; } = true;
 
     [ObservableProperty]
-    public partial string? NameError { get; set; }
+    public partial LanguageKey? NameError { get; set; }
 
     [ObservableProperty]
-    public partial string? CommandError { get; set; }
+    public partial LanguageKey? CommandError { get; set; }
 
     [ObservableProperty]
-    public partial string? DangerWarning { get; set; }
+    public partial LanguageKey? DangerWarning { get; set; }
 
     public bool IsNew { get; }
+
+    public bool HasNameError => NameError is not null;
+
+    public bool HasCommandError => CommandError is not null;
 
     public bool DirectoryExists => _directoryChecker.Exists(Directory);
 
@@ -52,16 +62,36 @@ public sealed partial class EditViewModel : ObservableObject
 
     public string DirGlyph => DirectoryExists ? LucideGlyph.CheckCircle : LucideGlyph.AlertTriangle;
 
-    public string DirectoryValidationText => DirectoryExists ? "Directory exists" : "Directory does not exist";
+    public LanguageKey DirectoryValidationKey => DirectoryExists
+        ? LanguageKey.ValidationDirectoryExists
+        : LanguageKey.ValidationDirectoryMissing;
 
     public Microsoft.UI.Xaml.Media.Brush DirGlyphBrush => DirectoryExists
         ? (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["SuccessBrush"]
         : (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["DangerBrush"];
 
-    public EditViewModel(IDirectoryChecker checker, IDirectoryPicker picker, LaunchItem? item)
+    // --- Localized text (keys resolved through LanguageService) ---
+    public string this[LanguageKey key] => _language[key];
+
+    public string FieldNameText => _language[LanguageKey.FieldName];
+    public string FieldDirectoryText => _language[LanguageKey.FieldDirectory];
+    public string FieldCommandText => _language[LanguageKey.FieldCommand];
+    public string FieldTerminalText => _language[LanguageKey.FieldTerminal];
+    public string PlaceholderRequiredText => _language[LanguageKey.PlaceholderRequired];
+    public string PlaceholderDirectoryText => _language[LanguageKey.PlaceholderDirectory];
+    public string PlaceholderTerminalText => _language[LanguageKey.PlaceholderTerminal];
+    public string CheckboxConfirmText => _language[LanguageKey.CheckboxConfirmBeforeLaunch];
+
+    public EditViewModel(
+        IDirectoryChecker checker,
+        IDirectoryPicker picker,
+        LanguageService language,
+        LaunchItem? item)
     {
         _directoryChecker = checker;
         _directoryPicker = picker;
+        _language = language;
+        _language.PropertyChanged += OnLanguageChanged;
         IsNew = item is null;
         if (item is not null)
         {
@@ -78,6 +108,8 @@ public sealed partial class EditViewModel : ObservableObject
         RefreshDangerWarning();
     }
 
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e) => OnPropertyChanged(string.Empty);
+
     partial void OnCommandChanged(string value) => RefreshDangerWarning();
 
     partial void OnDirectoryChanged(string value)
@@ -85,7 +117,7 @@ public sealed partial class EditViewModel : ObservableObject
         OnPropertyChanged(nameof(DirectoryExists));
         OnPropertyChanged(nameof(ShowDirectoryValidation));
         OnPropertyChanged(nameof(DirGlyph));
-        OnPropertyChanged(nameof(DirectoryValidationText));
+        OnPropertyChanged(nameof(DirectoryValidationKey));
         OnPropertyChanged(nameof(DirGlyphBrush));
     }
 
@@ -101,6 +133,8 @@ public sealed partial class EditViewModel : ObservableObject
         var errors = ItemValidator.Validate(Name, Command);
         NameError = errors.NameError;
         CommandError = errors.CommandError;
+        OnPropertyChanged(nameof(HasNameError));
+        OnPropertyChanged(nameof(HasCommandError));
         return errors.IsValid;
     }
 

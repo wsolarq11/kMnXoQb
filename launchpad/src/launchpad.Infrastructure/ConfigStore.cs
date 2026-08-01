@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
 using Launchpad.Core.Serialization;
@@ -25,11 +26,13 @@ public sealed class ConfigStore : IConfigStore
     private const string SettingsFileName = "settings.json";
     private const string BackupFileName = "config.json.bak";
 
-    public string? LastRecoveryNote { get; private set; }
+    /// <summary>Language-independent key for the recovery notice; null when no
+    /// recovery happened. The UI translates it with the current language.</summary>
+    public LanguageKey? LastRecoveryNoteKey { get; private set; }
 
     public IReadOnlyList<LaunchItem> ReadItems()
     {
-        LastRecoveryNote = null;
+        LastRecoveryNoteKey = null;
         var path = Path.Combine(_configDir, ItemsFileName);
         if (!File.Exists(path))
         {
@@ -66,7 +69,7 @@ public sealed class ConfigStore : IConfigStore
             var recovered = ParseOrThrow(backupPath, json =>
                 JsonSerializer.Deserialize<List<LaunchItem>>(json, LauncherJson.Options) ?? []);
             File.WriteAllText(path, File.ReadAllText(backupPath));
-            LastRecoveryNote = "config.json 已损坏，已从 config.json.bak 恢复";
+            LastRecoveryNoteKey = LanguageKey.StatusRecovered;
             return recovered;
         }
         catch (ConfigParseException backupCorrupt)

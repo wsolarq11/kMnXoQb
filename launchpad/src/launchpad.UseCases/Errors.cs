@@ -8,6 +8,9 @@ namespace Launchpad.UseCases;
 /// </summary>
 public static class LaunchErrors
 {
+    // Descriptions stay in English on purpose: they carry diagnostic details
+    // (paths, exceptions) and are never localized — the UI translates the
+    // status-bar prefix, not the technical detail. See spec i18n section.
     public static Error ProcessNotFound(string executable) =>
         Error.NotFound("Launch.ProcessNotFound", $"Executable not found: {executable}");
 

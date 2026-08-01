@@ -116,10 +116,12 @@ public sealed class JsonRoundTripTests
         Assert.Contains("\"confirm_enabled\"", json);
         Assert.Contains("\"launch_history\"", json);
         Assert.Contains("\"window_state\"", json);
+        Assert.Contains("\"language\"", json);
 
         var back = JsonSerializer.Deserialize<AppSettings>(json, Options);
         Assert.Equal(settings.ConfirmEnabled, back!.ConfirmEnabled);
         Assert.Equal(settings.Theme, back.Theme);
+        Assert.Equal(settings.Language, back.Language);
         Assert.Equal(settings.LaunchHistory, back.LaunchHistory);
         Assert.Equal(settings.WindowState, back.WindowState);
     }
@@ -163,6 +165,7 @@ public sealed class JsonRoundTripTests
 
         Assert.True(settings!.ConfirmEnabled);
         Assert.Equal("system", settings.Theme);
+        Assert.Equal("auto", settings.Language);
         Assert.Empty(settings.LaunchHistory);
         Assert.Null(settings.WindowState);
     }

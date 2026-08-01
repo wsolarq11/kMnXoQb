@@ -28,6 +28,10 @@ public sealed class SettingsUseCase(IConfigStore store)
     public static AppSettings SetConfirmEnabled(AppSettings settings, bool enabled) =>
         settings with { ConfirmEnabled = enabled };
 
+    /// <summary>Language setting value: "auto" (follow system), "zh-CN", or "en-US".</summary>
+    public static AppSettings SetLanguage(AppSettings settings, string language) =>
+        settings with { Language = language };
+
     public static AppSettings PushHistory(AppSettings settings, string name) =>
         settings with { LaunchHistory = LaunchUseCase.PushHistory(settings.LaunchHistory, name) };
 

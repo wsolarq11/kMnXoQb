@@ -1,15 +1,20 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
+using Launchpad.Localization;
 using Launchpad.UseCases;
 
 namespace Launchpad.ViewModels;
 
 /// <summary>
-/// Home screen state: item list, search, selection, theme, launch orchestration.
-/// Thin shell over UseCases — all decisions live in the testable pure layer.
+/// Home screen state: item list, search, selection, theme, language, launch
+/// orchestration. Thin shell over UseCases — all decisions live in the testable
+/// pure layer. Every visible text is a key lookup into <see cref="LanguageService"/>;
+/// a language switch re-raises all property notifications.
 /// </summary>
 public sealed partial class HomeViewModel : ObservableObject
 {
@@ -17,6 +22,7 @@ public sealed partial class HomeViewModel : ObservableObject
     private readonly LaunchUseCase _launchUseCase;
     private readonly SettingsUseCase _settingsUseCase;
     private readonly IDialogService _dialogs;
+    private readonly LanguageService _language;
 
     private List<LaunchItem> _all = [];
 
@@ -53,6 +59,30 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public string RecentName => Settings.LaunchHistory.FirstOrDefault() ?? "--";
 
+    // --- Localized text (keys resolved through LanguageService) ---
+    public string ConfirmText => _language[LanguageKey.ToggleConfirm];
+    public string NewButtonText => _language[LanguageKey.BtnNew];
+    public string SelectAllText => _language[LanguageKey.BtnSelectAll];
+    public string LaunchSelectedText => _language[LanguageKey.BtnLaunchSelected];
+    public string SearchPlaceholderText => _language[LanguageKey.SearchPlaceholder];
+    public string StatItemsText => _language[LanguageKey.StatItems];
+    public string StatRecentText => _language[LanguageKey.StatRecent];
+    public string EmptyTitleText => _language[LanguageKey.EmptyTitle];
+    public string EmptySubtitleText => _language[LanguageKey.EmptySubtitle];
+    public string EmptyButtonText => _language[LanguageKey.EmptyButton];
+    public string NoMatchTitleText => _language[LanguageKey.NoMatchTitle];
+    public string NoMatchSubtitleText => _language[LanguageKey.NoMatchSubtitle];
+    public string ThemeTooltip => _language[LanguageKey.TooltipTheme];
+    public string LanguageTooltip => _language[LanguageKey.TooltipLanguage];
+    public string LanguageLabel => _language.Label(Settings.Language);
+
+    // Card tooltips: resolved through the root DataContext so DataTemplate
+    // bindings can reach them via {Binding DataContext.X, ElementName=Root}.
+    public string TooltipEditText => _language[LanguageKey.TooltipEdit];
+    public string TooltipDeleteText => _language[LanguageKey.TooltipDelete];
+    public string TooltipMoveUpText => _language[LanguageKey.TooltipMoveUp];
+    public string TooltipMoveDownText => _language[LanguageKey.TooltipMoveDown];
+
     /// <summary>True only when the full (unfiltered) list is empty — matches
     /// legacy: the "no items yet" hint never shows for a search with no hits.</summary>
     public bool IsEmpty => _all.Count == 0;
@@ -77,12 +107,15 @@ public sealed partial class HomeViewModel : ObservableObject
         ItemUseCase itemUseCase,
         LaunchUseCase launchUseCase,
         SettingsUseCase settingsUseCase,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        LanguageService language)
     {
         _itemUseCase = itemUseCase;
         _launchUseCase = launchUseCase;
         _settingsUseCase = settingsUseCase;
         _dialogs = dialogs;
+        _language = language;
+        _language.PropertyChanged += OnLanguageChanged;
         Settings = settingsUseCase.Load();
         // The equal-value guard in OnConfirmEnabledChanged keeps this sync
         // side-effect free (no write during construction).
@@ -97,9 +130,20 @@ public sealed partial class HomeViewModel : ObservableObject
         OnPropertyChanged(nameof(RecentName));
         OnPropertyChanged(nameof(Theme));
         OnPropertyChanged(nameof(ThemeGlyph));
+        OnPropertyChanged(nameof(LanguageLabel));
+        _language.Apply(value.Language);
         // ConfirmEnabled is only ever written through OnConfirmEnabledChanged,
         // which persists into Settings immediately — the two are always in
         // sync, so no mirroring branch is needed here.
+    }
+
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Full refresh: every text property re-evaluates, and the item collection
+        // is rebuilt so card bindings (incl. the danger-reason tooltip converter)
+        // resolve against the new language.
+        RefreshItems();
+        OnPropertyChanged(string.Empty);
     }
 
     partial void OnStatusTextChanged(string value) => OnPropertyChanged(nameof(HasStatus));
@@ -117,17 +161,17 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void Load()
     {
-        var (result, recoveryNote) = _itemUseCase.LoadItems();
+        var (result, recoveryNoteKey) = _itemUseCase.LoadItems();
         if (result.IsError)
         {
-            StatusText = $"Config error: {result.FirstError.Description}";
+            StatusText = _language.Format(LanguageKey.StatusConfigError, result.FirstError.Description);
             return;
         }
 
         _all = result.Value.ToList();
-        if (recoveryNote is not null)
+        if (recoveryNoteKey is not null)
         {
-            StatusText = recoveryNote;
+            StatusText = _language[recoveryNoteKey.Value];
         }
 
         RefreshItems();
@@ -151,11 +195,11 @@ public sealed partial class HomeViewModel : ObservableObject
         var settings = _settingsUseCase.Save(Settings);
         if (items.IsError)
         {
-            StatusText = $"Save failed: {items.FirstError.Description}";
+            StatusText = _language.Format(LanguageKey.StatusSaveFailed, items.FirstError.Description);
         }
         else if (settings.IsError)
         {
-            StatusText = $"Save failed: {settings.FirstError.Description}";
+            StatusText = _language.Format(LanguageKey.StatusSaveFailed, settings.FirstError.Description);
         }
 
         return !items.IsError && !settings.IsError;
@@ -179,7 +223,7 @@ public sealed partial class HomeViewModel : ObservableObject
         }
 
         RefreshItems();
-        StatusText = index is null ? "Added" : "Updated";
+        StatusText = _language[index is null ? LanguageKey.StatusAdded : LanguageKey.StatusUpdated];
     }
 
     /// <summary>Three-state cycle: system (follow OS) → dark → light → system.
@@ -193,6 +237,16 @@ public sealed partial class HomeViewModel : ObservableObject
             "dark" => SettingsUseCase.SetTheme(Settings, "light"),
             _ => SettingsUseCase.SetTheme(Settings, "system"),
         };
+        TrySave();
+    }
+
+    /// <summary>Cycles the language setting: auto → zh-CN → en-US → auto.
+    /// "auto" follows the system language; LanguageService re-evaluates and
+    /// re-notifies every bound text.</summary>
+    [RelayCommand]
+    private void ToggleLanguage()
+    {
+        Settings = SettingsUseCase.SetLanguage(Settings, LanguageService.NextLanguage(Settings.Language));
         TrySave();
     }
 
@@ -248,7 +302,7 @@ public sealed partial class HomeViewModel : ObservableObject
         _all = ItemUseCase.Delete(_all, index).ToList();
         TrySave();
         RefreshItems();
-        StatusText = "Deleted";
+        StatusText = _language[LanguageKey.StatusDeleted];
     }
 
     public bool NeedsConfirm(LaunchItem item) => _launchUseCase.NeedsConfirm(Settings, item);
@@ -267,13 +321,13 @@ public sealed partial class HomeViewModel : ObservableObject
         var result = _launchUseCase.TryLaunch(item);
         if (result.IsError)
         {
-            StatusText = $"Launch failed: {result.FirstError.Description}";
+            StatusText = _language.Format(LanguageKey.StatusLaunchFailed, result.FirstError.Description);
             return;
         }
 
         Settings = SettingsUseCase.PushHistory(Settings, item.Name);
         TrySave();
-        StatusText = $"Launched: {item.Name}";
+        StatusText = _language.Format(LanguageKey.StatusLaunched, item.Name);
     }
 
     [RelayCommand]
@@ -317,7 +371,7 @@ public sealed partial class HomeViewModel : ObservableObject
         TrySave();
         RefreshItems();
         StatusText = succeeded == selected.Count
-            ? $"Launched {succeeded} items"
-            : $"Launched {succeeded} of {selected.Count} items ({failedIndexes.Count} failed)";
+            ? _language.Format(LanguageKey.StatusLaunchedN, succeeded)
+            : _language.Format(LanguageKey.StatusLaunchedPartial, succeeded, selected.Count, failedIndexes.Count);
     }
 }

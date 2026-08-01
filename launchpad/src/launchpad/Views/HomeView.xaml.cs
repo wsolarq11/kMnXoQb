@@ -1,5 +1,6 @@
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
+using Launchpad.Localization;
 using Launchpad.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,6 +13,7 @@ public sealed partial class HomeView : Page
     private readonly IDirectoryChecker _directoryChecker;
     private readonly IDirectoryPicker _directoryPicker;
     private readonly IDialogService _dialogs;
+    private readonly LanguageService _language;
     private readonly DispatcherTimer _themeTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private int? _lastAppsUseLightTheme;
 
@@ -21,12 +23,14 @@ public sealed partial class HomeView : Page
         HomeViewModel viewModel,
         IDirectoryChecker directoryChecker,
         IDirectoryPicker directoryPicker,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        LanguageService language)
     {
         ViewModel = viewModel;
         _directoryChecker = directoryChecker;
         _directoryPicker = directoryPicker;
         _dialogs = dialogs;
+        _language = language;
         InitializeComponent();
         DataContext = ViewModel;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -87,6 +91,8 @@ public sealed partial class HomeView : Page
     }
 
     private void OnThemeToggle(object sender, RoutedEventArgs e) => ViewModel.ToggleThemeCommand.Execute(null);
+
+    private void OnLanguageToggle(object sender, RoutedEventArgs e) => ViewModel.ToggleLanguageCommand.Execute(null);
 
     /// <summary>
     /// Collection-mutating commands run deferred: RefreshItems clears and rebuilds
@@ -156,7 +162,7 @@ public sealed partial class HomeView : Page
 
     private async Task ShowEditAsync(LaunchItem? item)
     {
-        var vm = new EditViewModel(_directoryChecker, _directoryPicker, item);
+        var vm = new EditViewModel(_directoryChecker, _directoryPicker, _language, item);
         var dialog = new EditDialog(vm) { XamlRoot = XamlRoot };
         var result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)

@@ -61,5 +61,5 @@ public sealed record LaunchItem
     public bool IsDangerous => Domain.DangerousFlagDetector.IsDangerous(Command);
 
     [JsonIgnore]
-    public string? DangerReason => Domain.DangerousFlagDetector.DangerousReason(Command);
+    public Localization.LanguageKey? DangerReason => Domain.DangerousFlagDetector.DangerousReason(Command);
 }

@@ -1,3 +1,4 @@
+using Launchpad.Core.Localization;
 using Launchpad.ViewModels;
 using Microsoft.UI.Xaml.Controls;
 
@@ -11,10 +12,10 @@ public sealed partial class EditDialog : ContentDialog
     {
         ViewModel = viewModel;
         InitializeComponent();
-        Title = viewModel.IsNew ? "New Item" : "Edit Item";
-        PrimaryButtonText = "Save";
-        CloseButtonText = "Cancel";
-        SecondaryButtonText = viewModel.IsNew ? null : "Delete";
+        Title = viewModel[viewModel.IsNew ? LanguageKey.EditTitleNew : LanguageKey.EditTitleEdit];
+        PrimaryButtonText = viewModel[LanguageKey.BtnSave];
+        CloseButtonText = viewModel[LanguageKey.BtnCancel];
+        SecondaryButtonText = viewModel.IsNew ? null : viewModel[LanguageKey.BtnDelete];
         DefaultButton = ContentDialogButton.Primary;
         PrimaryButtonClick += OnPrimaryClick;
     }

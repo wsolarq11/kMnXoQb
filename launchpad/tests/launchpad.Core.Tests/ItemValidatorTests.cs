@@ -1,4 +1,5 @@
 using Launchpad.Core.Domain;
+using Launchpad.Core.Localization;
 using Xunit;
 
 namespace Launchpad.Core.Tests;
@@ -21,7 +22,7 @@ public sealed class ItemValidatorTests
         var result = ItemValidator.Validate("   ", "snow");
 
         Assert.False(result.IsValid);
-        Assert.Equal("Name is required", result.NameError);
+        Assert.Equal(LanguageKey.ValidationNameRequired, result.NameError);
     }
 
     [Fact]
@@ -30,7 +31,7 @@ public sealed class ItemValidatorTests
         var result = ItemValidator.Validate("snow", "");
 
         Assert.False(result.IsValid);
-        Assert.Equal("Command is required", result.CommandError);
+        Assert.Equal(LanguageKey.ValidationCommandRequired, result.CommandError);
     }
 
     [Fact]

@@ -16,17 +16,20 @@ public sealed record AppSettings
     }
 
     /// <summary>Source-generated constructor binding; parameter defaults carry
-    /// the legacy semantics (missing theme -> "system", missing history -> [])
-    /// because init initializers do not run under constructor binding.</summary>
+    /// the legacy semantics (missing theme -> "system", missing language -> "auto",
+    /// missing history -> []) because init initializers do not run under constructor
+    /// binding.</summary>
     [JsonConstructor]
     public AppSettings(
         bool confirmEnabled,
         string theme = "system",
+        string language = "auto",
         List<string>? launchHistory = null,
         WindowState? windowState = null)
     {
         ConfirmEnabled = confirmEnabled;
         Theme = theme;
+        Language = language;
         LaunchHistory = launchHistory ?? [];
         WindowState = windowState;
     }
@@ -34,6 +37,9 @@ public sealed record AppSettings
     public bool ConfirmEnabled { get; init; }
 
     public string Theme { get; init; } = "system";
+
+    /// <summary>"auto" follows the system language; "zh-CN" / "en-US" override it.</summary>
+    public string Language { get; init; } = "auto";
 
     public List<string> LaunchHistory { get; init; } = [];
 

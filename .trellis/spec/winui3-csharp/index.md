@@ -10,9 +10,11 @@ launchpad/
     Models/    LaunchItem, AppSettings, WindowState, LaunchPlan（不可变 record）
     Domain/    DangerousFlagDetector, LaunchPlanner, ItemValidator, WindowPosition
     Ports/     所有端口接口（IConfigStore 等）
+    Localization/ LanguageKey（稳定文案键）+ Translations（中英纯语言表，可测）
   src/launchpad.UseCases/      应用层：ItemUseCase, LaunchUseCase, SettingsUseCase（ErrorOr 结构化错误）
   src/launchpad.Infrastructure/ 基础设施：ConfigStore, ProcessSpawner, TerminalDetector
   src/launchpad/               WinUI 3 外壳（unpackaged 自包含，Windows App SDK 2.3.1）
+    Localization/LanguageService  语言状态（settings + 系统侦测，auto 跟随系统，热切换）
   tests/launchpad.Core.Tests/  xUnit 单元 + ArchUnitNET 架构测试（只引用三个纯库，零 WinUI 依赖）
   tests/launchpad.IntegrationTests/ 契约测试（真实 spawn pwsh/cmd/wt）
   publish.ps1                  发布脚本（官方 CLI + config 模板 + XAML 资源补齐）
@@ -43,6 +45,8 @@ launchpad/
 10. **System.Text.Json**：读旧配置用 `PropertyNameCaseInsensitive=true` + `PropertyNamingPolicy.SnakeCaseLower`（写 snake_case 保持兼容）；record 相等性会被 JsonExtensionData 空字典破坏（测试用字段级断言）。
 11. **x:Bind 在 DataTemplate 里访问外层**：用传统 `{Binding DataContext.X, ElementName=Root}` 或事件转发，x:Bind 默认绑定 item。
 12. **cmd.exe 引号陷阱（契约测试捕获）**：cmd `/k` 不用标准 argv 引号规则（`\"` 是字面量），`cd /d "DIR" && ...` 在含引号/空格目录下整条命令不执行。目录一律经 `ProcessStartInfo.WorkingDirectory` 传递，`Args = ["/k", command]`。pwsh `-Command` 走标准 argv 解析（`\"` 有效），单引号转义 `'` → `''` 可用。
+13. **`FirstOrDefault` 对值类型元组返回非空默认值**：`DangerousFlagDetector.DangerousReason` 曾用 `FirstOrDefault(...).Reason`，LanguageKey 是枚举，默认元组给 `(null, ToggleConfirm)` —— 安全命令被误标为危险。无匹配必须显式返回 null（显式循环）。
+14. **枚举在条件表达式里需显式可空**：`condition ? LanguageKey.X : null` 编译报 CS0173，写 `(LanguageKey?)LanguageKey.X`。
 13. **dotnet publish 不复制 XAML 编译产物**（xbf/pri 缺失 → 发布版启动即 XamlParseException）。publish.ps1 从 Release bin 复制 `*.xbf`、`launchpad.pri`、`Views/`、`Themes/`。
 14. **窗口最小化坐标**：最小化窗口的 Position 是 -32000（离屏）。`OnClosed` 只保存最后一次 `OverlappedPresenterState.Restored` 的位置（`AppWindow.Changed` 追踪）；恢复前经 `WindowPosition.ClampToVisible` 纠偏。OverlappedPresenter 的枚举值是 `Restored` 不是 `Normal`。
 15. **Process.Start 目录错误码**：目录不存在抛 `Win32Exception`，NativeErrorCode=267（ERROR_DIRECTORY）而非 3。TryLaunch 把 267/3 都映射为 WorkingDirectoryMissing。
@@ -54,3 +58,14 @@ launchpad/
 - 测试：单命令 `dotnet test tests/launchpad.Core.Tests/`（单元 + 架构）；契约 `dotnet test tests/launchpad.IntegrationTests/`。
 - 每个修复必须有回归测试；行为对齐旧 Rust 版以测试断言为准，注释不得声称未验证的行为。
 - 发布：`powershell -ExecutionPolicy Bypass -File publish.ps1`，产物在 `launchpad/publish/`。
+
+## 国际化（i18n，2026-08-01 起）
+
+- **语言状态**：settings.json `language` 字段（`"auto"` / `"zh-CN"` / `"en-US"`，缺失默认 `"auto"`）。`auto` 跟随系统：`GlobalizationPreferences.Languages[0]` 以 `zh*` 前缀判定中文，其余回退英文（`Translations.FromSystemLanguage`）。
+- **三层优先级**：用户显式设置 > auto 跟随系统 > 英文兜底。顶栏语言按钮循环 auto → zh-CN → en-US。
+- **纯语言表**：`Core/Localization/Translations`（zh/en 两个字典 + `Resolve`/`Effective`/`T`/`Format` 纯函数）；键枚举 `LanguageKey`。新文案 = 新键 + 两语言值 + TranslationsTests 完整性断言自动覆盖。
+- **可翻译文案一律键引用**：XAML 绑定 ViewModel 文案属性（如 `NewButtonText`）或 `LanguageKeyTextConverter`（LanguageKey → 当前语言文案，经 `LanguageService.Instance`）；对话框（DialogService/EditDialog）显示时经注入的 LanguageService 翻译。
+- **热切换**：LanguageService 变更触发全量 `OnPropertyChanged(string.Empty)` + `RefreshItems()`（卡片重建使 converter 重新求值）。模态对话框在打开期间语言固定（语言按钮在主界面，模态下不可切换）。
+- **领域层语义化**：`DangerousFlagDetector.DangerousReason`、`ItemValidator` 错误、`ConfigStore.LastRecoveryNoteKey` 均返回 `LanguageKey?`（不返回文案）。
+- **ErrorOr 错误描述保持英文内部诊断**（含路径/异常等技术细节，属诊断信息），状态栏前缀本地化（如"启动失败：{desc}"）。这是有意决策，不是遗漏。
+- 品牌名 "WT Launcher"（窗口标题、主页标题）不翻译。

@@ -1,4 +1,5 @@
 using Launchpad.UseCases;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
 using Xunit;
@@ -214,7 +215,7 @@ public sealed class ItemUseCaseTests
 
     internal sealed class FakeStore : IConfigStore
     {
-        public string? LastRecoveryNote => null;
+        public LanguageKey? LastRecoveryNoteKey => null;
 
         public List<IReadOnlyList<LaunchItem>> Saved { get; } = [];
 
@@ -231,7 +232,7 @@ public sealed class ItemUseCaseTests
 
     internal sealed class ThrowingStore : IConfigStore
     {
-        public string? LastRecoveryNote => null;
+        public LanguageKey? LastRecoveryNoteKey => null;
 
         public IReadOnlyList<LaunchItem> ReadItems() => [];
 

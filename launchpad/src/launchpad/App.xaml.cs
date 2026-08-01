@@ -1,5 +1,6 @@
 using Launchpad.Core.Ports;
 using Launchpad.Infrastructure;
+using Launchpad.Localization;
 using Launchpad.UseCases;
 using Launchpad.ViewModels;
 using Launchpad.Views;
@@ -61,6 +62,7 @@ public partial class App : Application
         var configDir = ResolveConfigDir();
 
         services.AddSingleton<IConfigStore>(new ConfigStore(configDir));
+        services.AddSingleton(sp => LanguageService.FromSettings(sp.GetRequiredService<IConfigStore>().ReadSettings()));
         services.AddSingleton<ITerminalDetector, TerminalDetector>();
         services.AddSingleton<IProcessSpawner, ProcessSpawner>();
         services.AddSingleton<IDirectoryChecker, DirectoryChecker>();
@@ -86,6 +88,7 @@ public partial class App : Application
             return;
         }
 
+        LanguageService.AssignInstance(_services.GetRequiredService<LanguageService>());
         _window = _services.GetRequiredService<MainWindow>();
         var homeView = _services.GetRequiredService<HomeView>();
         _window.Content = homeView;

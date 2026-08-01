@@ -1,6 +1,8 @@
 using Launchpad.Core.Domain;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
+using Launchpad.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -11,25 +13,33 @@ namespace Launchpad.Infrastructure;
 /// captured at attach time and the XamlRoot is resolved lazily on each show —
 /// XamlRoot is not available right after Window.Activate (it is created during
 /// layout), so reading it at attach time yields null.
+/// Dialog text is translated at show time from the current language; a dialog
+/// stays in the language it was opened with (modal, no switching mid-show).
 /// </summary>
 public sealed class DialogService : IDialogService
 {
+    private readonly LanguageService _language;
     private FrameworkElement? _host;
+
+    public DialogService(LanguageService language)
+    {
+        _language = language;
+    }
 
     public void Attach(FrameworkElement host) => _host = host;
 
     public async Task<bool> ConfirmLaunchAsync(LaunchItem item, string? dangerReason)
     {
         var xamlRoot = GuardXamlRoot();
-        var dangerText = dangerReason ?? DangerousFlagDetector.DangerousReason(item.Command);
+        var dangerText = dangerReason ?? (item.DangerReason is { } key ? _language[key] : null);
         var content = new StackPanel
         {
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = $"Name: {item.Name}", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
-                new TextBlock { Text = $"Command: {item.Command}", FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") },
-                new TextBlock { Text = $"Directory: {item.Directory}" },
+                new TextBlock { Text = _language.Format(LanguageKey.DialogLabelName, item.Name), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
+                new TextBlock { Text = _language.Format(LanguageKey.DialogLabelCommand, item.Command), FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") },
+                new TextBlock { Text = _language.Format(LanguageKey.DialogLabelDirectory, item.Directory) },
             },
         };
         if (dangerText is not null)
@@ -44,10 +54,10 @@ public sealed class DialogService : IDialogService
 
         var dialog = new ContentDialog
         {
-            Title = "Confirm Launch",
+            Title = _language[LanguageKey.DialogConfirmLaunchTitle],
             Content = content,
-            PrimaryButtonText = "Launch",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = _language[LanguageKey.BtnLaunch],
+            CloseButtonText = _language[LanguageKey.BtnCancel],
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = xamlRoot,
         };
@@ -71,14 +81,14 @@ public sealed class DialogService : IDialogService
         var xamlRoot = GuardXamlRoot();
         var dialog = new ContentDialog
         {
-            Title = "Delete Item",
+            Title = _language[LanguageKey.DialogDeleteItemTitle],
             Content = new TextBlock
             {
-                Text = $"Delete '{item.Name}'?\nThis cannot be undone.",
+                Text = _language.Format(LanguageKey.DialogDeleteItemMessage, item.Name),
                 TextWrapping = TextWrapping.Wrap,
             },
-            PrimaryButtonText = "Delete",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = _language[LanguageKey.BtnDelete],
+            CloseButtonText = _language[LanguageKey.BtnCancel],
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = xamlRoot,
         };
@@ -92,7 +102,7 @@ public sealed class DialogService : IDialogService
         var panel = new StackPanel { Spacing = 6 };
         foreach (var item in items)
         {
-            var dangerText = DangerousFlagDetector.DangerousReason(item.Command);
+            var dangerKey = DangerousFlagDetector.DangerousReason(item.Command);
             var text = new TextBlock
             {
                 Text = $"{item.Name}: {item.Command}",
@@ -100,7 +110,7 @@ public sealed class DialogService : IDialogService
                 FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
             };
-            if (dangerText is not null)
+            if (dangerKey is not null)
             {
                 text.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["DangerBrush"];
             }
@@ -110,10 +120,10 @@ public sealed class DialogService : IDialogService
 
         var dialog = new ContentDialog
         {
-            Title = $"Confirm {items.Count} launches",
+            Title = _language.Format(LanguageKey.DialogBatchTitle, items.Count),
             Content = panel,
-            PrimaryButtonText = "Launch All",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = _language[LanguageKey.BtnLaunchAll],
+            CloseButtonText = _language[LanguageKey.BtnCancel],
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = xamlRoot,
         };

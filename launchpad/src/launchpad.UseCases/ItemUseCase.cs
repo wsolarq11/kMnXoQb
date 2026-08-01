@@ -1,4 +1,5 @@
 using ErrorOr;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
 
@@ -14,14 +15,14 @@ public sealed class ItemUseCase(IConfigStore store)
 {
     /// <summary>Loads items; a corrupt config.json (recovery attempt already
     /// happened inside the store) surfaces as a structured error instead of a
-    /// startup crash, and the recovery note rides along for the status bar.
+    /// startup crash, and the recovery notice key rides along for the status bar.
     /// ErrorOr's implicit conversion requires a concrete type, hence List.</summary>
-    public (ErrorOr<List<LaunchItem>> Result, string? RecoveryNote) LoadItems()
+    public (ErrorOr<List<LaunchItem>> Result, LanguageKey? RecoveryNoteKey) LoadItems()
     {
         try
         {
             ErrorOr<List<LaunchItem>> result = store.ReadItems().ToList();
-            return (result, store.LastRecoveryNote);
+            return (result, store.LastRecoveryNoteKey);
         }
         catch (Launchpad.Core.Ports.ConfigParseException e)
         {

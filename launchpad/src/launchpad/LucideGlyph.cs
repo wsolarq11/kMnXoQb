@@ -20,6 +20,4 @@ public static class LucideGlyph
     public const string AlertTriangle = "\uF10D";
     public const string CheckCircle = "\uF1F0";
     public const string FolderOpen = "\uF30A";
-    public const string Folder = "\uF2F8";
-    public const string ArrowUp = "\uF15B";
 }

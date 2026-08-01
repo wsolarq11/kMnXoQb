@@ -1,4 +1,5 @@
 using Launchpad.Core.Domain;
+using Launchpad.Core.Localization;
 using Launchpad.Core.Models;
 using Xunit;
 
@@ -35,11 +36,11 @@ public sealed class DangerousFlagTests
     }
 
     [Fact]
-    public void DangerousReason_ReturnsMatchingFlagReason()
+    public void DangerousReason_ReturnsMatchingFlagKey()
     {
         var reason = DangerousFlagDetector.DangerousReason("claude --dangerously-skip-permissions");
 
-        Assert.Equal("contains --dangerously flag", reason);
+        Assert.Equal(LanguageKey.DangerReasonDangerously, reason);
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public sealed class DangerousFlagTests
         };
 
         Assert.True(item.IsDangerous);
-        Assert.Equal("contains --dangerously flag", item.DangerReason);
+        Assert.Equal(LanguageKey.DangerReasonDangerously, item.DangerReason);
     }
 
     [Fact]

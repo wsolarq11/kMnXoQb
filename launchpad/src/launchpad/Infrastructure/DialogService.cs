@@ -66,6 +66,25 @@ public sealed class DialogService : IDialogService
         return root;
     }
 
+    public async Task<bool> ConfirmDeleteAsync(LaunchItem item)
+    {
+        var xamlRoot = GuardXamlRoot();
+        var dialog = new ContentDialog
+        {
+            Title = "Delete Item",
+            Content = new TextBlock
+            {
+                Text = $"Delete '{item.Name}'?\nThis cannot be undone.",
+                TextWrapping = TextWrapping.Wrap,
+            },
+            PrimaryButtonText = "Delete",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = xamlRoot,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
     /// <summary>Batch confirmation listing every item that needs confirmation.</summary>
     public async Task<bool> ConfirmBatchAsync(IReadOnlyList<LaunchItem> items)
     {

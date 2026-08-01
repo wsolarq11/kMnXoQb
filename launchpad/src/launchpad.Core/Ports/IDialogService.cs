@@ -9,4 +9,8 @@ public interface IDialogService
 
     /// <summary>Batch confirmation listing every item that needs confirmation.</summary>
     Task<bool> ConfirmBatchAsync(IReadOnlyList<LaunchItem> items);
+
+    /// <summary>Confirmation before deleting an item (legacy behavior: the card
+    /// Delete button asks "This cannot be undone" before removing).</summary>
+    Task<bool> ConfirmDeleteAsync(LaunchItem item);
 }

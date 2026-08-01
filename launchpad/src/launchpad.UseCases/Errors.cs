@@ -25,6 +25,9 @@ public static class StoreErrors
 {
     public static Error WriteFailed(string path, string message) =>
         Error.Failure("Store.WriteFailed", $"Failed to write {path}: {message}");
+
+    public static Error ReadFailed(string path, string message) =>
+        Error.Failure("Store.ReadFailed", $"Failed to read {path}: {message}");
 }
 
 /// <summary>Win32 process-spawn error codes surfaced by Process.Start.</summary>

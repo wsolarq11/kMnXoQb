@@ -25,16 +25,54 @@ public sealed class ConfigStore : IConfigStore
     private const string SettingsFileName = "settings.json";
     private const string BackupFileName = "config.json.bak";
 
+    public string? LastRecoveryNote { get; private set; }
+
     public IReadOnlyList<LaunchItem> ReadItems()
     {
+        LastRecoveryNote = null;
         var path = Path.Combine(_configDir, ItemsFileName);
         if (!File.Exists(path))
         {
             return [];
         }
 
-        return ParseOrThrow(path, json =>
-            JsonSerializer.Deserialize<List<LaunchItem>>(json, LauncherJson.Options) ?? []);
+        try
+        {
+            return ParseOrThrow(path, json =>
+                JsonSerializer.Deserialize<List<LaunchItem>>(json, LauncherJson.Options) ?? []);
+        }
+        catch (ConfigParseException corrupt)
+        {
+            return RecoverFromBackup(path, corrupt);
+        }
+    }
+
+    /// <summary>
+    /// A corrupt config.json is recovered from the backup by a file-level copy
+    /// (deliberately NOT via WriteItems, which would overwrite the backup with
+    /// the corrupt file). If the backup is also unreadable the original parse
+    /// error is rethrown with backup details appended.
+    /// </summary>
+    private IReadOnlyList<LaunchItem> RecoverFromBackup(string path, ConfigParseException corrupt)
+    {
+        var backupPath = Path.Combine(_configDir, BackupFileName);
+        if (!File.Exists(backupPath))
+        {
+            throw new ConfigParseException(path, $"{corrupt.Message}; no backup available (config.json.bak missing)", corrupt);
+        }
+
+        try
+        {
+            var recovered = ParseOrThrow(backupPath, json =>
+                JsonSerializer.Deserialize<List<LaunchItem>>(json, LauncherJson.Options) ?? []);
+            File.WriteAllText(path, File.ReadAllText(backupPath));
+            LastRecoveryNote = "config.json 已损坏，已从 config.json.bak 恢复";
+            return recovered;
+        }
+        catch (ConfigParseException backupCorrupt)
+        {
+            throw new ConfigParseException(path, $"{corrupt.Message}; backup also unreadable: {backupCorrupt.Message}", corrupt);
+        }
     }
 
     public AppSettings ReadSettings()
@@ -57,7 +95,9 @@ public sealed class ConfigStore : IConfigStore
             File.Copy(path, Path.Combine(_configDir, BackupFileName), overwrite: true);
         }
 
-        File.WriteAllText(path, JsonSerializer.Serialize(items, LauncherJson.Options));
+        // ToList so the source-generated context (List metadata) is hit; the
+        // IReadOnlyList interface type has no generated metadata.
+        File.WriteAllText(path, JsonSerializer.Serialize(items.ToList(), LauncherJson.Options));
     }
 
     public void WriteSettings(AppSettings settings)

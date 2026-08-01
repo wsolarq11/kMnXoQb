@@ -83,6 +83,47 @@ public sealed class ConfigStoreTests : IDisposable
     }
 
     [Fact]
+    public void ReadItems_CorruptWithValidBackup_RecoversAndNotes()
+    {
+        var store = NewStore();
+        // Two writes so a backup exists (the first write has nothing to back up).
+        store.WriteItems([Item("good")]);
+        store.WriteItems([Item("good"), Item("backup")]);
+        File.WriteAllText(Path.Combine(_dir, "config.json"), "{ not json");
+
+        var items = store.ReadItems();
+
+        // The backup holds the pre-overwrite state (first write: [good]).
+        Assert.Single(items);
+        Assert.Equal("good", items[0].Name);
+        Assert.NotNull(store.LastRecoveryNote);
+        // The good backup must survive recovery (WriteItems would have
+        // overwritten it with the corrupt file; the recovery path must not).
+        Assert.Contains("good", File.ReadAllText(Path.Combine(_dir, "config.json.bak")));
+    }
+
+    [Fact]
+    public void ReadItems_CorruptWithCorruptBackup_RaisesWithBothDetails()
+    {
+        File.WriteAllText(Path.Combine(_dir, "config.json"), "{ not json");
+        File.WriteAllText(Path.Combine(_dir, "config.json.bak"), "also not json");
+
+        var ex = Assert.Throws<ConfigParseException>(() => NewStore().ReadItems());
+
+        Assert.Contains("backup also unreadable", ex.Message);
+    }
+
+    [Fact]
+    public void ReadItems_NoBackup_RaisesMentioningMissingBackup()
+    {
+        File.WriteAllText(Path.Combine(_dir, "config.json"), "{ not json");
+
+        var ex = Assert.Throws<ConfigParseException>(() => NewStore().ReadItems());
+
+        Assert.Contains("no backup available", ex.Message);
+    }
+
+    [Fact]
     public void ReadSettings_ReturnsDefaultsWhenFileMissing()
     {
         var settings = NewStore().ReadSettings();

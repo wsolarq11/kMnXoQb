@@ -62,6 +62,7 @@
     <x:String x:Key="GlyphChevronUp">&#xF1FD;</x:String>
     <x:String x:Key="GlyphChevronDown">&#xF1F5;</x:String>
     <x:String x:Key="GlyphZap">&#xF5A3;</x:String>
+    <x:String x:Key="GlyphSearch">&#xF4AD;</x:String>
     <x:String x:Key="GlyphFolderOpen">&#xF30A;</x:String>
     <x:String x:Key="GlyphAlertTriangle">&#xF10D;</x:String>
 </ResourceDictionary>

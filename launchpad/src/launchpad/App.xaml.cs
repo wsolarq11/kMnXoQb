@@ -22,9 +22,19 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
-        File.AppendAllText(
-            Path.Combine(Path.GetTempPath(), "launchpad-crash.log"),
-            $"[{DateTime.Now:O}] {e.Exception}\n---\n");
+        // The logger itself must never crash the process (disk full, locked
+        // temp dir, permissions); logging is best-effort.
+        try
+        {
+            File.AppendAllText(
+                Path.Combine(Path.GetTempPath(), "launchpad-crash.log"),
+                $"[{DateTime.Now:O}] {e.Exception}\n---\n");
+        }
+        catch
+        {
+            // best effort only
+        }
+
         // Keep the instance alive; unhandled exceptions are logged, not fatal.
         e.Handled = true;
     }

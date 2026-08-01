@@ -1,0 +1,29 @@
+{
+  "id": "p3-roadmap-exec",
+  "name": "p3-roadmap-exec",
+  "title": "P3 路线图实施：MVVMTK 清理 + XAML 静态门禁",
+  "description": "执行 P3/P4 梳理中当前可做的两项：P3-1 MVVMTK0045/0034 警告清理（partial property 迁移，构建零警告）；C-2 XAML 静态检查进 CI（x:DefaultBindMode 门禁）。P3-2/3、P4 等待外部触发，明确不做。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-01-p3-mvvmtk-cleanup",
+    "08-01-c2-xaml-ci-gate"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

@@ -4,6 +4,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Centralize all bin/obj under artifacts/ (single cache target for CI,
+         clean source tree, deterministic publish paths). -->
+    <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
 
 </Project>

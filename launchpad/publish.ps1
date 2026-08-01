@@ -27,8 +27,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # dotnet publish does not copy the XAML compile outputs (xbf/pri); without them the
 # published exe dies with XamlParseException at MainWindow.InitializeComponent.
-# Copy them from the Release bin output.
-$binOutput = Join-Path $root "src/launchpad/bin/Release/net10.0-windows10.0.19041.0/win-x64"
+# Copy them from the Release build output (artifacts/ layout via UseArtifactsOutput).
+$binOutput = Join-Path $root "artifacts/bin/launchpad/release_win-x64"
 Copy-Item "$binOutput\*.xbf" $output -Force
 Copy-Item "$binOutput\launchpad.pri" $output -Force
 foreach ($sub in @("Views", "Themes")) {

@@ -9,6 +9,27 @@ namespace Launchpad.Core.Models;
 /// </summary>
 public sealed record LaunchItem
 {
+    /// <summary>Object-initializer path (with-expressions, test builders).
+    /// Required members are enforced by the compiler at construction sites.</summary>
+    public LaunchItem()
+    {
+    }
+
+    /// <summary>Source-generated constructor binding: JSON keys map to
+    /// parameters (case-insensitive, snake_case). Parameter defaults carry the
+    /// legacy semantics — a missing "confirm" keeps the default true — which
+    /// the generated parameterless path would drop (init initializers do not
+    /// run under constructor binding).</summary>
+    [JsonConstructor]
+    public LaunchItem(string name, string directory, string command, string id, bool confirm = true)
+    {
+        Name = name;
+        Directory = directory;
+        Command = command;
+        Id = id;
+        Confirm = confirm;
+    }
+
     public required string Name { get; init; }
 
     public required string Directory { get; init; }

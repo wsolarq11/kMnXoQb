@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Launchpad.UseCases;
 using Launchpad.Core.Models;
 using Launchpad.Core.Ports;
@@ -179,6 +180,36 @@ public sealed class LaunchUseCaseTests
     {
         public void Launch(LaunchPlan plan) =>
             throw new InvalidOperationException("invalid directory");
+    }
+
+    /// <summary>Throws the given Win32 error code for every spawn.</summary>
+    internal sealed class Win32ThrowingSpawner(int nativeErrorCode) : IProcessSpawner
+    {
+        public void Launch(LaunchPlan plan) =>
+            throw new Win32Exception(nativeErrorCode);
+    }
+
+    [Fact]
+    public void TryLaunch_PathNotFoundWithExistingWorkingDir_ReportsExecutable()
+    {
+        var useCase = new LaunchUseCase(new Win32ThrowingSpawner(3), new FakeTerminalDetector("wt.exe"));
+        var item = Item() with { Directory = Directory.GetCurrentDirectory() };
+
+        var error = useCase.TryLaunch(item);
+
+        Assert.Equal("Launch.ProcessNotFound", error.FirstError.Code);
+    }
+
+    [Fact]
+    public void TryLaunch_PathNotFoundWithMissingWorkingDir_ReportsWorkingDirectory()
+    {
+        var useCase = new LaunchUseCase(new Win32ThrowingSpawner(3), new FakeTerminalDetector("wt.exe"));
+        var missing = Path.Combine(Path.GetTempPath(), "launchpad-definitely-missing-" + Guid.NewGuid().ToString("N"));
+        var item = Item() with { Directory = missing };
+
+        var error = useCase.TryLaunch(item);
+
+        Assert.Equal("Launch.WorkingDirectoryMissing", error.FirstError.Code);
     }
 
     /// <summary>Throws when the plan contains the marker "fail" command.</summary>

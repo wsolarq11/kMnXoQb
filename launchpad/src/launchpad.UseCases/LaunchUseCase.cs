@@ -72,7 +72,12 @@ public sealed class LaunchUseCase(IProcessSpawner spawner, ITerminalDetector det
         }
         catch (Win32Exception e) when (e.NativeErrorCode is Win32ErrorCode.PathNotFound or Win32ErrorCode.InvalidDirectory)
         {
-            return LaunchErrors.WorkingDirectoryMissing(plan.WorkingDirectory);
+            // ERROR_PATH_NOT_FOUND also fires when the executable lookup walks a
+            // broken PATH entry; only blame the working directory when it is
+            // actually missing (the directory lives on the process start info).
+            return Directory.Exists(plan.WorkingDirectory)
+                ? LaunchErrors.ProcessNotFound(plan.Executable)
+                : LaunchErrors.WorkingDirectoryMissing(plan.WorkingDirectory);
         }
         catch (Win32Exception e) when (e.NativeErrorCode == Win32ErrorCode.AccessDenied)
         {

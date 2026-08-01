@@ -153,4 +153,17 @@ public sealed class JsonRoundTripTests
 
         Assert.Contains("\"future_field\":42", json2);
     }
+
+    [Fact]
+    public void AppSettings_Deserialize_MissingOptionalFields_KeepDefaults()
+    {
+        const string json = """{"confirm_enabled":true}""";
+
+        var settings = JsonSerializer.Deserialize<AppSettings>(json, Options);
+
+        Assert.True(settings!.ConfirmEnabled);
+        Assert.Equal("system", settings.Theme);
+        Assert.Empty(settings.LaunchHistory);
+        Assert.Null(settings.WindowState);
+    }
 }

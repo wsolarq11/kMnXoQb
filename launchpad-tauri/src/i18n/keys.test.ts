@@ -10,12 +10,12 @@ describe("i18n keys", () => {
   });
 
   it("key set matches the Rust enum size (62)", () => {
-    expect(LANGUAGE_KEYS.length).toBe(62);
+    expect(LANGUAGE_KEYS.length).toBe(63);
   });
 
   it("first and last keys match the Rust enum order", () => {
     expect(LANGUAGE_KEYS[0]).toBe("ToggleConfirm");
-    expect(LANGUAGE_KEYS[LANGUAGE_KEYS.length - 1]).toBe("DangerReasonBypassSandbox");
+    expect(LANGUAGE_KEYS[LANGUAGE_KEYS.length - 1]).toBe("BootLoading");
   });
 
   it("t resolves per language", () => {

@@ -25,7 +25,7 @@ export function HeaderBar({ onNew }: Props) {
   return (
     <header className="header-bar">
       <input
-        className="search-input"
+        id="search-input" className="search-input"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.currentTarget.value)}
         placeholder={t("SearchPlaceholder", language)}

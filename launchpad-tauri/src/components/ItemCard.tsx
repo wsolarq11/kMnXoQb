@@ -25,7 +25,17 @@ export function ItemCard({ item }: Props) {
           onChange={(e) => setSelect(item.id, e.currentTarget.checked)}
         />
       </label>
-      <div className="card-main" onClick={() => launchOne(item.id)}>
+      <div
+        className="card-main"
+        onClick={() => launchOne(item.id)}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            launchOne(item.id);
+          }
+        }}
+      >
         <div className="card-title">
           {item.name}
           {dangerous && <AlertTriangle size={14} className="danger-icon" />}

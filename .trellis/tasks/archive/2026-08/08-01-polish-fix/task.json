@@ -1,0 +1,28 @@
+{
+  "id": "polish-fix",
+  "name": "polish-fix",
+  "title": "打磨A 功能缺陷：主题三态生效(settings联动CSS) + 单实例插件 + 窗口状态保存接线",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-polish-shareable",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: 主题三态生效(settings→data-theme→CSS+4测试) + 单实例插件(双开实测1进程) + 窗口状态close事件保存+启动恢复"
+  }
+}

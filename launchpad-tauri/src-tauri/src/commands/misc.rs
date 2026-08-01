@@ -59,12 +59,23 @@ pub struct WindowStateDto {
     pub height: u32,
 }
 
-/// Persists the current window geometry (only meaningful when the window is
-/// in the Restored state; the UI wires the close event in phase 4).
+/// Persists the current window geometry. Wired to the CloseRequested event in
+/// lib.rs (the restore-time clamp guards the -32000 minimized coordinates).
 #[tauri::command]
-pub fn save_window_state(state: State<'_, AppState>, window: tauri::Window) -> Result<(), AppError> {
-    let position = window.outer_position().map_err(|e| AppError::Unknown(e.to_string()))?;
-    let size = window.inner_size().map_err(|e| AppError::Unknown(e.to_string()))?;
+pub fn save_window_state(state: State<'_, AppState>, window: tauri::WebviewWindow) -> Result<(), AppError> {
+    save_window_state_impl(&state, &window)
+}
+
+pub fn save_window_state_impl(
+    state: &AppState,
+    window: &tauri::WebviewWindow,
+) -> Result<(), AppError> {
+    let position = window
+        .outer_position()
+        .map_err(|e| AppError::Unknown(e.to_string()))?;
+    let size = window
+        .inner_size()
+        .map_err(|e| AppError::Unknown(e.to_string()))?;
     let settings = state.settings.load()?;
     let updated = crate::core::settings::set_window_state(
         &settings,
@@ -84,13 +95,20 @@ pub fn save_window_state(state: State<'_, AppState>, window: tauri::Window) -> R
 #[tauri::command]
 pub fn load_window_state(
     state: State<'_, AppState>,
-    window: tauri::Window,
+    window: tauri::WebviewWindow,
+) -> Result<Option<WindowStateDto>, AppError> {
+    load_window_state_impl(&state, &window)
+}
+
+pub fn load_window_state_impl(
+    state: &AppState,
+    window: &tauri::WebviewWindow,
 ) -> Result<Option<WindowStateDto>, AppError> {
     let settings = state.settings.load()?;
     let Some(ws) = settings.window_state else {
         return Ok(None);
     };
-    let (left, top, width, height) = virtual_bounds(&window)?;
+    let (left, top, width, height) = virtual_bounds(window)?;
     let clamped = crate::core::window_pos::clamp_to_visible(&ws, left, top, width, height, 100);
     Ok(Some(WindowStateDto {
         x: clamped.x,
@@ -101,7 +119,7 @@ pub fn load_window_state(
 }
 
 /// Union of all monitor bounds (the virtual desktop).
-fn virtual_bounds(window: &tauri::Window) -> Result<(i32, i32, i32, i32), AppError> {
+fn virtual_bounds(window: &tauri::WebviewWindow) -> Result<(i32, i32, i32, i32), AppError> {
     let monitors = window
         .available_monitors()
         .map_err(|e| AppError::Unknown(e.to_string()))?;

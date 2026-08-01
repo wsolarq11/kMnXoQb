@@ -68,9 +68,10 @@ pub enum LanguageKey {
     DangerReasonSkipPermissions,
     DangerReasonBypassApprovals,
     DangerReasonBypassSandbox,
+    BootLoading,
 }
 
-pub const KEY_COUNT: usize = 62;
+pub const KEY_COUNT: usize = 63;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum AppLanguage {
@@ -95,7 +96,7 @@ const ZH_CN: [&str; KEY_COUNT] = [
     "配置错误：{0}", "保存失败：{0}", "启动失败：{0}",
     "config.json 已损坏，已从 config.json.bak 恢复",
     "包含 --dangerously 标志", "包含 --yolo 标志", "包含 --skip-permissions 标志",
-    "包含 --bypass-approvals 标志", "包含 --bypass-sandbox 标志",
+    "包含 --bypass-approvals 标志", "包含 --bypass-sandbox 标志", "正在启动...",
 ];
 
 const EN_US: [&str; KEY_COUNT] = [
@@ -114,7 +115,7 @@ const EN_US: [&str; KEY_COUNT] = [
     "Save failed: {0}", "Launch failed: {0}",
     "config.json was corrupted; restored from config.json.bak",
     "contains --dangerously flag", "contains --yolo flag", "contains --skip-permissions flag",
-    "contains --bypass-approvals flag", "contains --bypass-sandbox flag",
+    "contains --bypass-approvals flag", "contains --bypass-sandbox flag", "Starting...",
 ];
 
 /// Resolves the settings value ("auto" / "zh-CN" / "en-US"); unknown or empty

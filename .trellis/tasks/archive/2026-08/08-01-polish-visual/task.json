@@ -1,0 +1,28 @@
+{
+  "id": "polish-visual",
+  "name": "polish-visual",
+  "title": "打磨C 视觉现代化：卡片/按钮/过渡/深色配套 + 窗口图标",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-polish-shareable",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: 卡片阴影/圆角/过渡/滚动条/按钮/模态框/搜索焦点环 + 自绘图标全套"
+  }
+}

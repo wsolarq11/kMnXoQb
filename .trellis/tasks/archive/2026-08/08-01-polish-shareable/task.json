@@ -1,0 +1,30 @@
+{
+  "id": "polish-shareable",
+  "name": "polish-shareable",
+  "title": "产品打磨至拿得出手：功能缺陷修复（主题/单实例/窗口状态）→ 键盘与加载体验 → 视觉现代化",
+  "description": "以拿给最好的朋友用的标准持续迭代：F1-F3 功能缺陷、E1-E3 体验、V1-V3 外观，每轮测试+构建+运行验证",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-01-polish-fix",
+    "08-01-polish-ux",
+    "08-01-polish-visual"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

@@ -8,16 +8,48 @@ import { EditDialog } from "./components/EditDialog";
 import { DeleteDialog } from "./components/DeleteDialog";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { StatusBar } from "./components/StatusBar";
+import { applyTheme } from "./lib/theme";
+import { installGlobalKeys } from "./lib/keyboard";
+import { t } from "./i18n/keys";
 import "./App.css";
 
 function App() {
-  const { items, searchQuery, editing, newDialogOpen, deleteTarget, pendingConfirm, openNew, init } =
-    useAppStore();
+  const {
+    items,
+    searchQuery,
+    editing,
+    newDialogOpen,
+    deleteTarget,
+    pendingConfirm,
+    loading,
+    language,
+    openNew,
+    init,
+    closeDialogs,
+    cancelPending,
+  } = useAppStore();
 
   useEffect(() => {
     void init();
-    void restoreWindow();
   }, [init]);
+
+  // Theme three-state wiring (settings -> data-theme -> CSS). Window geometry
+  // restore/persist is handled on the Rust side (lib.rs setup + CloseRequested).
+  const theme = useAppStore((s) => s.settings.theme);
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  // Global keys: Esc closes dialogs, Ctrl+F focuses the search box.
+  useEffect(() => {
+    return installGlobalKeys(
+      () => {
+        closeDialogs();
+        cancelPending();
+      },
+      () => document.getElementById("search-input")?.focus(),
+    );
+  }, [closeDialogs, cancelPending]);
 
   const visible = items.filter((i) =>
     [i.name, i.directory, i.command].some((f) =>
@@ -27,6 +59,12 @@ function App() {
 
   return (
     <main className="app">
+      {loading && (
+        <div className="boot-screen">
+          <div className="boot-spinner" />
+          <p>{t("BootLoading", language)}</p>
+        </div>
+      )}
       <HeaderBar onNew={openNew} />
       <StatBar />
       <section className="item-grid">
@@ -42,21 +80,6 @@ function App() {
       {pendingConfirm && <ConfirmDialog pending={pendingConfirm} />}
     </main>
   );
-}
-
-async function restoreWindow() {
-  try {
-    const { loadWindowState } = await import("./lib/invoke");
-    const state = await loadWindowState();
-    if (state) {
-      // Apply via the webview's host API (phase 5 wires this to the Tauri
-      // window); position/size are already clamped by the core.
-      window.__TAURI__?.window?.getCurrent?.().setPosition?.(state.x, state.y);
-      window.__TAURI__?.window?.getCurrent?.().setSize?.({ width: state.width, height: state.height });
-    }
-  } catch {
-    // window restore is best-effort; the core clamp already guards geometry
-  }
 }
 
 export default App;

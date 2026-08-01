@@ -65,6 +65,7 @@ export const LANGUAGE_KEYS = [
   "DangerReasonSkipPermissions",
   "DangerReasonBypassApprovals",
   "DangerReasonBypassSandbox",
+  "BootLoading",
 ] as const;
 
 export type LanguageKey = (typeof LANGUAGE_KEYS)[number];
@@ -132,6 +133,7 @@ export const ZH_CN: Record<LanguageKey, string> = {
   DangerReasonSkipPermissions: "包含 --skip-permissions 标志",
   DangerReasonBypassApprovals: "包含 --bypass-approvals 标志",
   DangerReasonBypassSandbox: "包含 --bypass-sandbox 标志",
+  BootLoading: "正在启动...",
 };
 
 export const EN_US: Record<LanguageKey, string> = {
@@ -197,6 +199,7 @@ export const EN_US: Record<LanguageKey, string> = {
   DangerReasonSkipPermissions: "contains --skip-permissions flag",
   DangerReasonBypassApprovals: "contains --bypass-approvals flag",
   DangerReasonBypassSandbox: "contains --bypass-sandbox flag",
+  BootLoading: "Starting...",
 };
 
 export type AppLanguage = "auto" | "zh-CN" | "en-US";

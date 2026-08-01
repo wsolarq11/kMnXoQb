@@ -29,26 +29,29 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public ObservableCollection<LaunchItem> Items => _items;
 
+    // Partial properties (C# 13): the source generator emits the setter +
+    // change hooks without the AOT-incompatible backing-field pattern
+    // (MVVMTK0045).
     [ObservableProperty]
-    private string _searchQuery = string.Empty;
+    public partial string SearchQuery { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _statusText = string.Empty;
+    public partial string StatusText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private AppSettings _settings = new();
+    public partial AppSettings Settings { get; set; } = new();
 
     /// <summary>TwoWay-bound to the Confirm toggle; the setter persists through
     /// <see cref="SettingsUseCase"/>. OneWay+Toggled was racy (binding-driven IsOn
     /// changes re-trigger Toggled, flipping state back).</summary>
     [ObservableProperty]
-    private bool _confirmEnabled;
+    public partial bool ConfirmEnabled { get; set; }
 
     public int ItemCount => _all.Count;
 
     public int SelectedCount => _all.Count(i => i.Selected);
 
-    public string RecentName => _settings.LaunchHistory.FirstOrDefault() ?? "--";
+    public string RecentName => Settings.LaunchHistory.FirstOrDefault() ?? "--";
 
     /// <summary>True only when the full (unfiltered) list is empty — matches
     /// legacy: the "no items yet" hint never shows for a search with no hits.</summary>
@@ -58,12 +61,12 @@ public sealed partial class HomeViewModel : ObservableObject
     /// hint instead of the misleading empty-state CTA.</summary>
     public bool HasNoMatches => _all.Count > 0 && Items.Count == 0;
 
-    public bool HasStatus => !string.IsNullOrEmpty(_statusText);
+    public bool HasStatus => !string.IsNullOrEmpty(StatusText);
 
-    public string Theme => _settings.Theme;
+    public string Theme => Settings.Theme;
 
     /// <summary>Glyph shows what the next click does; Auto for the system-following state.</summary>
-    public string ThemeGlyph => _settings.Theme switch
+    public string ThemeGlyph => Settings.Theme switch
     {
         "dark" => LucideGlyph.Sun,
         "light" => LucideGlyph.Moon,
@@ -80,8 +83,10 @@ public sealed partial class HomeViewModel : ObservableObject
         _launchUseCase = launchUseCase;
         _settingsUseCase = settingsUseCase;
         _dialogs = dialogs;
-        _settings = settingsUseCase.Load();
-        _confirmEnabled = _settings.ConfirmEnabled;
+        Settings = settingsUseCase.Load();
+        // The equal-value guard in OnConfirmEnabledChanged keeps this sync
+        // side-effect free (no write during construction).
+        ConfirmEnabled = Settings.ConfirmEnabled;
         Load();
     }
 
@@ -92,16 +97,20 @@ public sealed partial class HomeViewModel : ObservableObject
         OnPropertyChanged(nameof(RecentName));
         OnPropertyChanged(nameof(Theme));
         OnPropertyChanged(nameof(ThemeGlyph));
-        if (_confirmEnabled != value.ConfirmEnabled)
-        {
-            _confirmEnabled = value.ConfirmEnabled;
-        }
+        // ConfirmEnabled is only ever written through OnConfirmEnabledChanged,
+        // which persists into Settings immediately — the two are always in
+        // sync, so no mirroring branch is needed here.
     }
 
     partial void OnStatusTextChanged(string value) => OnPropertyChanged(nameof(HasStatus));
 
     partial void OnConfirmEnabledChanged(bool value)
     {
+        if (value == Settings.ConfirmEnabled)
+        {
+            return;
+        }
+
         Settings = SettingsUseCase.SetConfirmEnabled(Settings, value);
         TrySave();
     }
@@ -126,7 +135,7 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void RefreshItems()
     {
-        _items = new ObservableCollection<LaunchItem>(ItemUseCase.Filter(_all, _searchQuery));
+        _items = new ObservableCollection<LaunchItem>(ItemUseCase.Filter(_all, SearchQuery));
         OnPropertyChanged(nameof(Items));
 
         OnPropertyChanged(nameof(ItemCount));
@@ -139,7 +148,7 @@ public sealed partial class HomeViewModel : ObservableObject
     private bool TrySave()
     {
         var items = _itemUseCase.SaveItems(_all);
-        var settings = _settingsUseCase.Save(_settings);
+        var settings = _settingsUseCase.Save(Settings);
         if (items.IsError)
         {
             StatusText = $"Save failed: {items.FirstError.Description}";
@@ -242,7 +251,7 @@ public sealed partial class HomeViewModel : ObservableObject
         StatusText = "Deleted";
     }
 
-    public bool NeedsConfirm(LaunchItem item) => _launchUseCase.NeedsConfirm(_settings, item);
+    public bool NeedsConfirm(LaunchItem item) => _launchUseCase.NeedsConfirm(Settings, item);
 
     public async Task LaunchAsync(LaunchItem item)
     {
@@ -277,7 +286,7 @@ public sealed partial class HomeViewModel : ObservableObject
             return;
         }
 
-        var confirmItems = _launchUseCase.RequireConfirm(_settings, selected);
+        var confirmItems = _launchUseCase.RequireConfirm(Settings, selected);
         if (confirmItems.Count > 0)
         {
             _ = ConfirmAndLaunchAsync(selected, confirmItems);

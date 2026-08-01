@@ -17,37 +17,38 @@ public sealed partial class EditViewModel : ObservableObject
     private readonly IDirectoryPicker _directoryPicker;
     private readonly string? _originalId;
 
+    // Partial properties (C# 13): AOT-compatible source generation (MVVMTK0045).
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _directory = string.Empty;
+    public partial string Directory { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _command = string.Empty;
+    public partial string Command { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string? _terminal;
+    public partial string? Terminal { get; set; }
 
     [ObservableProperty]
-    private bool _confirm = true;
+    public partial bool Confirm { get; set; } = true;
 
     [ObservableProperty]
-    private string? _nameError;
+    public partial string? NameError { get; set; }
 
     [ObservableProperty]
-    private string? _commandError;
+    public partial string? CommandError { get; set; }
 
     [ObservableProperty]
-    private string? _dangerWarning;
+    public partial string? DangerWarning { get; set; }
 
     public bool IsNew { get; }
 
-    public bool DirectoryExists => _directoryChecker.Exists(_directory);
+    public bool DirectoryExists => _directoryChecker.Exists(Directory);
 
-    public bool ShowDirectoryValidation => !string.IsNullOrWhiteSpace(_directory);
+    public bool ShowDirectoryValidation => !string.IsNullOrWhiteSpace(Directory);
 
-    public bool ShowDangerWarning => _dangerWarning is not null;
+    public bool ShowDangerWarning => DangerWarning is not null;
 
     public string DirGlyph => DirectoryExists ? LucideGlyph.CheckCircle : LucideGlyph.AlertTriangle;
 
@@ -64,11 +65,13 @@ public sealed partial class EditViewModel : ObservableObject
         IsNew = item is null;
         if (item is not null)
         {
-            _name = item.Name;
-            _directory = item.Directory;
-            _command = item.Command;
-            _terminal = item.Terminal;
-            _confirm = item.Confirm;
+            // Property assignment triggers OnCommandChanged/OnDirectoryChanged
+            // once each; both only re-evaluate derived state (idempotent).
+            Name = item.Name;
+            Directory = item.Directory;
+            Command = item.Command;
+            Terminal = item.Terminal;
+            Confirm = item.Confirm;
             _originalId = item.Id;
         }
 
@@ -88,14 +91,14 @@ public sealed partial class EditViewModel : ObservableObject
 
     private void RefreshDangerWarning()
     {
-        _dangerWarning = DangerousFlagDetector.DangerousReason(_command);
-        OnPropertyChanged(nameof(DangerWarning));
+        // Property assignment raises PropertyChanged(DangerWarning) itself.
+        DangerWarning = DangerousFlagDetector.DangerousReason(Command);
         OnPropertyChanged(nameof(ShowDangerWarning));
     }
 
     public bool Validate()
     {
-        var errors = ItemValidator.Validate(_name, _command);
+        var errors = ItemValidator.Validate(Name, Command);
         NameError = errors.NameError;
         CommandError = errors.CommandError;
         return errors.IsValid;
@@ -103,16 +106,16 @@ public sealed partial class EditViewModel : ObservableObject
 
     public LaunchItem BuildItem(IReadOnlyList<LaunchItem> existing)
     {
-        var fresh = ItemUseCase.NewItem(_name.Trim(), _directory.Trim(), _command.Trim(), _confirm, _terminal, existing);
+        var fresh = ItemUseCase.NewItem(Name.Trim(), Directory.Trim(), Command.Trim(), Confirm, Terminal, existing);
         return IsNew ? fresh : fresh with { Id = _originalId ?? fresh.Id };
     }
 
     [RelayCommand]
     private async Task PickDirectoryAsync()
     {
-        var initial = string.IsNullOrWhiteSpace(_directory)
+        var initial = string.IsNullOrWhiteSpace(Directory)
             ? System.IO.Directory.GetCurrentDirectory()
-            : _directory;
+            : Directory;
         var picked = await _directoryPicker.PickDirectoryAsync(initial);
         if (picked is not null)
         {

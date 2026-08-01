@@ -78,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File publish.ps1   # 发布（输出 launchp
 - 批量启动后清除全部选中态（与旧版一致，防重复触发同一批终端）。
 - 卡片删除弹确认框（"This cannot be undone"，与旧版一致）；编辑对话框内的 Delete 保持直接删。
 - 搜索空态：仅全列表为空显示「No items yet」；搜索无结果显示「No matches」（与旧版一致，避免误导）。
-- XAML 绑定默认值：页面根声明 `x:DefaultBindMode="OneWay"`（x:Bind 默认 OneTime 是 BUG-1/2/3 根因）；模板内绑定一律显式 `Mode=OneTime`（不可变 record 按实例求值，零 WMC1506 噪音）。新页面必须声明根默认模式。
+- XAML 绑定默认值：页面根声明 `x:DefaultBindMode="OneWay"`（x:Bind 默认 OneTime 是 BUG-1/2/3 根因）；模板内绑定一律显式 `Mode=OneTime`（不可变 record 按实例求值，零 WMC1506 噪音）。新页面必须声明根默认模式——CI 有静态门禁强制（.github/workflows/ci.yml XAML binding-mode gate）。
 
 ## Testing
 

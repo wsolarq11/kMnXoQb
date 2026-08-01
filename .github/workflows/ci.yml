@@ -39,6 +39,23 @@ jobs:
       - name: Restore
         run: dotnet restore src/launchpad/launchpad.csproj
 
+      # XAML binding-mode gate: every page must declare x:DefaultBindMode on its
+      # root (x:Bind defaults to OneTime — the BUG-1/2/3 class). A new page that
+      # forgets the attribute fails CI instead of shipping dead bindings.
+      - name: XAML binding-mode gate
+        shell: pwsh
+        run: |
+          $pages = Get-ChildItem -Path src -Recurse -Filter *.xaml |
+                   Where-Object { $_.FullName -notlike '*\obj\*' -and $_.FullName -notlike '*\bin\*' } |
+                   Where-Object { (Get-Content $_.FullName -Raw) -match '<(Page|UserControl|ContentDialog)\b' }
+          $bad = $pages | Where-Object {
+            -not ((Get-Content $_.FullName -Raw) -match 'x:DefaultBindMode')
+          }
+          if ($bad) {
+            Write-Error ("Missing x:DefaultBindMode on: " + ($bad.FullName -join ', '))
+            exit 1
+          }
+
       - name: Audit vulnerable packages
         run: dotnet list package --vulnerable --include-transitive || echo "::warning::Vulnerable or unlisted packages detected; review above output"
 

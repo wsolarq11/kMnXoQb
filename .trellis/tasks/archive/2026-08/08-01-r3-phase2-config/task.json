@@ -1,0 +1,28 @@
+{
+  "id": "r3-phase2-config",
+  "name": "r3-phase2-config",
+  "title": "阶段2 配置层：双轨路径解析 + atomic_write/.bak恢复 + 探测缓存",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-r3-full-migration",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: 双轨路径+atomic_write/.bak恢复+未知字段保留+探测缓存; 105测试全绿(config_store 11 + json_round_trip 9 + lib 85), 零警告"
+  }
+}

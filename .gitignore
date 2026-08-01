@@ -50,3 +50,4 @@ launchpad/tests/**/obj/
 
 # Publish output
 launchpad/publish/
+launchpad-tauri/release/

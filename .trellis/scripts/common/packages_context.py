@@ -36,11 +36,8 @@ def _scan_spec_layers(spec_dir: Path, package: str | None = None) -> list[str]:
     target = spec_dir / package if package else spec_dir
     if not target.is_dir():
         return []
-    # _ 前缀 = 停用层（保留历史，不参与发现）
     return sorted(
-        d.name
-        for d in target.iterdir()
-        if d.is_dir() and d.name != "guides" and not d.name.startswith("_")
+        d.name for d in target.iterdir() if d.is_dir() and d.name != "guides"
     )
 
 

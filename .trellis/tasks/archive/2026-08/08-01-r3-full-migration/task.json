@@ -1,0 +1,33 @@
+{
+  "id": "r3-full-migration",
+  "name": "r3-full-migration",
+  "title": "R3 全图实施：Rust核心 + Tauri2 + React 迁移（评估→生产就绪→实战质检）",
+  "description": "按评估结论实施 C# → R3 迁移：阶段0验证门→核心层→配置层→用例桥接→前端→发布质检；全图生产就绪后实战实测验真质检",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-01-r3-phase0-gate",
+    "08-01-r3-phase1-core",
+    "08-01-r3-phase2-config",
+    "08-01-r3-phase3-bridge",
+    "08-01-r3-phase4-frontend",
+    "08-01-r3-phase5-release"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

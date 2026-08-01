@@ -1,0 +1,28 @@
+{
+  "id": "r3-phase4-frontend",
+  "name": "r3-phase4-frontend",
+  "title": "阶段4 前端：React UI（卡片/搜索/多选/对话框/主题/语言/lucide/i18n）+ vitest",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-r3-full-migration",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: React UI 全组件(卡片/搜索/多选/对话框/主题/语言/lucide)+16前端测试全绿+tsc零错+集成运行验证(真实config数据渲染)"
+  }
+}

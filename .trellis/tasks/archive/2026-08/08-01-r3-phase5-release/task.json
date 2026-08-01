@@ -1,0 +1,28 @@
+{
+  "id": "r3-phase5-release",
+  "name": "r3-phase5-release",
+  "title": "阶段5 发布与质检：MSI+Portable双产物 + 实战实测验真质检 + spec更新 + 预备后续phase",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-r3-full-migration",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: MSI+Portable双产物构建成功; 便携形态实测(config/自动生成+真实数据加载); 质检报告落盘(自动化全PASS+人工清单); spec更新; 后续phase预备文档"
+  }
+}

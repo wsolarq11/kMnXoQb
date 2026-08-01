@@ -15,6 +15,15 @@ Windows 原生启动器：在一个界面里集中管理并一键启动 AI CLI �
 
 ## 技术栈
 
+> **2026-08-01 迁移状态**：R3 全图实施（Rust 核心 + Tauri 2 + React）已完成（`launchpad-tauri/`，阶段 0-5 验收通过，质检自动化项全 PASS）。新栈产物：便携 zip（`launchpad-tauri/release/`）+ MSI；配置双轨（便携 exe 旁 config/，安装版 %APPDATA%）。规范见 `.trellis/spec/tauri-rust-ts/index.md`。人工场景走查与安装实测为下一迭代项；C# 主线（`launchpad/`）保持可回滚。
+
+### 新栈（进行中，推荐）
+
+- Rust 核心（纯函数分层）+ Tauri 2.11 + React/TS/Vite + zustand + lucide-react
+- serde snake_case 配置（字节兼容旧格式）；cargo test + vitest + 契约测试
+
+### 旧栈（存档）
+
 - .NET 10 + WinUI 3（Windows App SDK 2.3.1），unpackaged 自包含部署
 - CommunityToolkit.Mvvm（MVVM）、Microsoft.Extensions.DependencyInjection（DI）
 - ErrorOr（预期失败结构化错误）、xUnit + ArchUnitNET + Verify（测试）

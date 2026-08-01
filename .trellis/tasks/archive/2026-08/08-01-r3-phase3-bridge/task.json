@@ -1,0 +1,28 @@
+{
+  "id": "r3-phase3-bridge",
+  "name": "r3-phase3-bridge",
+  "title": "阶段3 用例与桥接：UseCases移植 + Tauri commands + 契约测试（真实spawn）",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-r3-full-migration",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: 应用层(Item/Settings/Launch编排)+18个Tauri commands+双轨接入+契约测试; 119测试全绿(含真实spawn pwsh/cmd/wt 15s), 零警告"
+  }
+}

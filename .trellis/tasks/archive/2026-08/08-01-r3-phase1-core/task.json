@@ -1,0 +1,28 @@
+{
+  "id": "r3-phase1-core",
+  "name": "r3-phase1-core",
+  "title": "阶段1 核心层：Rust纯函数移植（models/planner/danger/validator/position/items/launch/i18n/errors）+ 单测1:1",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-r3-full-migration",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS: 11模块 + 77测试全绿(cargo test), 断言1:1移植自Core.Tests, 零外部I/O"
+  }
+}

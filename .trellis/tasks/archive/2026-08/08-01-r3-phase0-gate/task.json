@@ -1,0 +1,29 @@
+{
+  "id": "r3-phase0-gate",
+  "name": "r3-phase0-gate",
+  "title": "阶段0 验证门：Tauri2最小工程 + WebView2实测 + 便携config/验证 + 中文输入实测",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "08-01-r3-full-migration",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "result": "PASS",
+    "evidence": "probe_result.json: dir=D:\\<PROJECT_ROOT>\\launchpad (config ancestor found), writable=true, UA=Chrome/150 Edg/150 (WebView2 Runtime 150); gate_debug.log: full chain app started→probe invoked→reported; screenshot phase0-gate-screenshot.png; MSI bundle 因 WiX 下载超时暂缓(阶段5处理)"
+  }
+}

@@ -1,0 +1,321 @@
+:root {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: light dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-header);
+}
+
+.search-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+}
+
+.stat-bar {
+  display: flex;
+  gap: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+.item-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+}
+
+.item-card.selected {
+  border-color: var(--accent);
+}
+
+.item-card.dangerous {
+  border-color: var(--danger);
+}
+
+.card-main {
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.card-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.danger-icon {
+  color: var(--danger);
+}
+
+.card-dir {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-cmd {
+  display: block;
+  font-size: 12px;
+  color: var(--text-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--bg-code);
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-top: 4px;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.icon-btn.danger:hover {
+  color: var(--danger);
+}
+
+.primary-btn,
+.ghost-btn,
+.danger-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.primary-btn {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.danger-btn {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.ghost-btn {
+  background: transparent;
+  color: var(--text);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-dim);
+}
+
+.empty-state h2 {
+  margin-bottom: 8px;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  width: 460px;
+  max-width: 92vw;
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.modal input,
+.modal textarea {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+}
+
+.modal textarea {
+  min-height: 64px;
+  resize: vertical;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row input[type="checkbox"] {
+  width: auto;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.danger-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.confirm-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.confirm-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.confirm-list code {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-mono);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-bar {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  background: var(--bg-header);
+}
+
+/* Light theme (default until the theme command lands) */
+:root {
+  --text: #1a1a1a;
+  --text-dim: #666;
+  --text-mono: #7a5c00;
+  --border: #d9d9d9;
+  --bg-header: #f5f5f5;
+  --bg-input: #fff;
+  --bg-card: #fff;
+  --bg-code: #f7f7f2;
+  --bg-modal: #fff;
+  --bg-hover: #eee;
+  --accent: #2f6fed;
+  --danger: #d33;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e6e6e6;
+    --text-dim: #999;
+    --text-mono: #d9b35c;
+    --border: #3a3a3a;
+    --bg-header: #1e1e1e;
+    --bg-input: #262626;
+    --bg-card: #222;
+    --bg-code: #2b2b26;
+    --bg-modal: #262626;
+    --bg-hover: #333;
+    --accent: #4d8aff;
+    --danger: #f05555;
+  }
+}

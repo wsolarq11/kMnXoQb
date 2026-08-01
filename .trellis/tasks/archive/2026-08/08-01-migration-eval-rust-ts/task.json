@@ -1,0 +1,28 @@
+{
+  "id": "migration-eval-rust-ts",
+  "name": "migration-eval-rust-ts",
+  "title": "评估 C# → Rust/TS 再迁移方案（完整功能对齐，单 exe + 根目录配置）",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "<USER>",
+  "assignee": "<USER>",
+  "createdAt": "2026-08-01",
+  "completedAt": "2026-08-01",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "conclusion": "推荐 R3（Rust核心+Tauri2.11+React），约束修订为便携zip/MSI双形态+双轨配置；设计文档 research/软件设计与架构模式.md v0.1（11决策点按建议默认采纳）；egui(R1)为备选"
+  }
+}

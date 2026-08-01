@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-Launchpad：Windows 原生启动器（WinUI 3，unpackaged 自包含），用统一界面启动 AI CLI 工具（snow / codex / claude / opencode 等）。2026-07-31 从 Rust/Slint + Flutter 时代整体迁移到 C#（.NET 10），旧实现归档在 `archive/`（`launchpad-rs`、`launchpad_flutter`），行为对齐以测试断言为准。
+Launchpad：Windows 原生启动器，用统一界面启动 AI CLI 工具（snow / codex / claude / opencode 等）。
+
+**技术栈状态（2026-08-01）**：R3 全图实施完成——新栈为 **Rust 核心 + Tauri 2.11 + React**（`launchpad-tauri/`，阶段 0-5 验收通过，质检自动化全 PASS，含便携 zip + MSI 双产物与双轨配置）。新栈规范/踩坑见 `.trellis/spec/tauri-rust-ts/index.md`；迁移决策链见 `archive/2026-08/08-01-migration-eval-rust-ts`。C# 主线（`launchpad/`，WinUI 3）保持可回滚，其行为断言是迁移对齐的契约；人工场景走查与安装实测为下一迭代项。旧实现归档在 `archive/`（`launchpad-rs`、`launchpad_flutter`）。
 
 ## 常用命令（均在 `launchpad/` 目录下执行）
 

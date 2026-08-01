@@ -1,0 +1,39 @@
+﻿{
+  Items:
+[
+  {
+    "name": "demo",
+    "directory": "D:\\projects\\demo dir",
+    "command": "snow --dangerously",
+    "confirm": false,
+    "id": "demo",
+    "selected": false
+  },
+  {
+    "name": "legacy",
+    "directory": "D:\\projects\\demo dir",
+    "command": "snow",
+    "confirm": true,
+    "id": "legacy",
+    "selected": false,
+    "terminal": "cmd",
+    "tag": "internal",
+    "group": "dev"
+  }
+],
+  Settings:
+{
+  "confirm_enabled": true,
+  "theme": "dark",
+  "launch_history": [
+    "recent",
+    "old"
+  ],
+  "window_state": {
+    "x": 100,
+    "y": 200,
+    "width": 900,
+    "height": 700
+  }
+}
+}

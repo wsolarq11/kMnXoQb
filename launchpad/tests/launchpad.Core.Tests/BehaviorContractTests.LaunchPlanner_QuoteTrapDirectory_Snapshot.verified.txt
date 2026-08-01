@@ -1,0 +1,17 @@
+﻿[
+  {
+    Executable: pwsh.exe,
+    Args: [
+      -NoExit,
+      -Command,
+      cd 'D:\weird dir''s\'; snow
+    ]
+  },
+  {
+    Executable: cmd.exe,
+    Args: [
+      /k,
+      snow
+    ]
+  }
+]

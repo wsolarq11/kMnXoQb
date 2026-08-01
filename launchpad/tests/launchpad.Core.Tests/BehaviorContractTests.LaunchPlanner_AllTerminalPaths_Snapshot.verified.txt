@@ -1,0 +1,35 @@
+﻿[
+  {
+    Executable: wt.exe,
+    Args: [
+      new-tab,
+      -d,
+      D:\projects\demo dir,
+      pwsh,
+      -NoExit,
+      -Command,
+      echo 'hi'; pwd
+    ],
+    WorkingDirectory: D:\projects\demo dir,
+    IsDangerous: false
+  },
+  {
+    Executable: pwsh.exe,
+    Args: [
+      -NoExit,
+      -Command,
+      cd 'D:\projects\demo dir'; echo 'hi'; pwd
+    ],
+    WorkingDirectory: D:\projects\demo dir,
+    IsDangerous: false
+  },
+  {
+    Executable: cmd.exe,
+    Args: [
+      /k,
+      echo 'hi'; pwd
+    ],
+    WorkingDirectory: D:\projects\demo dir,
+    IsDangerous: false
+  }
+]

@@ -1,0 +1,44 @@
+﻿{
+  cleared: [
+    {
+      Item1: a,
+      Item2: false
+    },
+    {
+      Item1: b,
+      Item2: false
+    },
+    {
+      Item1: c,
+      Item2: false
+    }
+  ],
+  setById: [
+    {
+      Item1: a,
+      Item2: true
+    },
+    {
+      Item1: b,
+      Item2: true
+    },
+    {
+      Item1: c,
+      Item2: false
+    }
+  ],
+  selectAll: [
+    {
+      Item1: a,
+      Item2: true
+    },
+    {
+      Item1: b,
+      Item2: true
+    },
+    {
+      Item1: c,
+      Item2: true
+    }
+  ]
+}

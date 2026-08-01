@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:Launchpad.Core.Models"
     xmlns:local="using:Launchpad.Views"
+    x:DefaultBindMode="OneWay"
     Background="{ThemeResource BaseBrush}">
 
     <Page.Resources>
@@ -138,14 +139,14 @@
                             Width="320"
                             Height="118"
                             CornerRadius="12"
-                            BorderThickness="{x:Bind Selected, Mode=OneWay, Converter={StaticResource SelectedBorderConverter}}"
-                            BorderBrush="{x:Bind Selected, Mode=OneWay, Converter={StaticResource SelectedBorderBrushConverter}}"
+                            BorderThickness="{x:Bind Selected, Mode=OneTime, Converter={StaticResource SelectedBorderConverter}}"
+                            BorderBrush="{x:Bind Selected, Mode=OneTime, Converter={StaticResource SelectedBorderBrushConverter}}"
                             Background="{ThemeResource SurfaceBrush}"
                             Padding="10">
                             <Grid RowSpacing="4" RowDefinitions="Auto,Auto,Auto,*">
                                 <Grid ColumnSpacing="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
                                     <TextBlock
-                                        Text="{x:Bind Name}"
+                                        Text="{x:Bind Name, Mode=OneTime}"
                                         FontWeight="SemiBold"
                                         Foreground="{ThemeResource TextPrimaryBrush}"
                                         TextTrimming="CharacterEllipsis"
@@ -164,14 +165,13 @@
                                     </Button>
                                     <CheckBox
                                         Grid.Column="5"
-                                        IsChecked="{x:Bind Selected, Mode=OneWay}"
-                                        Checked="OnSelectToggled"
-                                        Unchecked="OnSelectToggled"
+                                        IsChecked="{x:Bind Selected, Mode=OneTime}"
+                                        Click="OnSelectClicked"
                                         VerticalAlignment="Center" />
                                 </Grid>
                                 <TextBlock
                                     Grid.Row="1"
-                                    Text="{x:Bind Directory}"
+                                    Text="{x:Bind Directory, Mode=OneTime}"
                                     FontFamily="Consolas"
                                     FontSize="11"
                                     Foreground="{ThemeResource TextTertiaryBrush}"
@@ -181,11 +181,11 @@
                                         Glyph="{StaticResource GlyphAlertTriangle}"
                                         FontSize="12"
                                         Foreground="{ThemeResource DangerBrush}"
-                                        ToolTipService.ToolTip="{x:Bind DangerReason}"
-                                        Visibility="{x:Bind IsDangerous, Mode=OneWay}" />
+                                        ToolTipService.ToolTip="{x:Bind DangerReason, Mode=OneTime}"
+                                        Visibility="{x:Bind IsDangerous, Mode=OneTime}" />
                                     <TextBlock
                                         Grid.Column="1"
-                                        Text="{x:Bind Command}"
+                                        Text="{x:Bind Command, Mode=OneTime}"
                                         FontFamily="Consolas"
                                         FontSize="12"
                                         Foreground="{ThemeResource TextSecondaryBrush}"
@@ -193,15 +193,15 @@
                                 </Grid>
                                 <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
                                     <TextBlock
-                                        Text="{x:Bind Tag, Converter={StaticResource TagPrefixConverter}}"
+                                        Text="{x:Bind Tag, Mode=OneTime, Converter={StaticResource TagPrefixConverter}}"
                                         FontSize="10"
                                         Foreground="{ThemeResource AccentBrush}"
-                                        Visibility="{x:Bind HasTag, Mode=OneWay}" />
+                                        Visibility="{x:Bind HasTag, Mode=OneTime}" />
                                     <TextBlock
-                                        Text="{x:Bind Group, Converter={StaticResource GroupPrefixConverter}}"
+                                        Text="{x:Bind Group, Mode=OneTime, Converter={StaticResource GroupPrefixConverter}}"
                                         FontSize="10"
                                         Foreground="{ThemeResource SuccessBrush}"
-                                        Visibility="{x:Bind HasGroup, Mode=OneWay}" />
+                                        Visibility="{x:Bind HasGroup, Mode=OneTime}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -229,6 +229,27 @@
                     Foreground="{ThemeResource TextTertiaryBrush}"
                     HorizontalAlignment="Center" />
                 <Button Content="New Item" Click="OnNew" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <StackPanel
+                Visibility="{x:Bind ViewModel.HasNoMatches}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="10">
+                <FontIcon
+                    Glyph="{StaticResource GlyphSearch}"
+                    FontSize="40"
+                    Foreground="{ThemeResource TextTertiaryBrush}"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    Text="No matches"
+                    Foreground="{ThemeResource TextSecondaryBrush}"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    Text="Try a different search query"
+                    FontSize="12"
+                    Foreground="{ThemeResource TextTertiaryBrush}"
+                    HorizontalAlignment="Center" />
             </StackPanel>
         </Grid>
 

@@ -12,7 +12,22 @@ namespace Launchpad.UseCases;
 /// </summary>
 public sealed class ItemUseCase(IConfigStore store)
 {
-    public IReadOnlyList<LaunchItem> LoadItems() => store.ReadItems();
+    /// <summary>Loads items; a corrupt config.json (recovery attempt already
+    /// happened inside the store) surfaces as a structured error instead of a
+    /// startup crash, and the recovery note rides along for the status bar.
+    /// ErrorOr's implicit conversion requires a concrete type, hence List.</summary>
+    public (ErrorOr<List<LaunchItem>> Result, string? RecoveryNote) LoadItems()
+    {
+        try
+        {
+            ErrorOr<List<LaunchItem>> result = store.ReadItems().ToList();
+            return (result, store.LastRecoveryNote);
+        }
+        catch (Launchpad.Core.Ports.ConfigParseException e)
+        {
+            return (StoreErrors.ReadFailed("config.json", e.Message), null);
+        }
+    }
 
     public ErrorOr<Success> SaveItems(IReadOnlyList<LaunchItem> items)
     {
@@ -115,7 +130,12 @@ public sealed class ItemUseCase(IConfigStore store)
         return list;
     }
 
-    public static IReadOnlyList<LaunchItem> ToggleSelect(IReadOnlyList<LaunchItem> items, int index)
+    /// <summary>
+    /// Sets the selection target state at <paramref name="index"/>. Target-state
+    /// (not flip) semantics: the UI captures the checkbox state at click time and
+    /// applies it, so binding-driven or stale re-invocations are idempotent.
+    /// </summary>
+    public static IReadOnlyList<LaunchItem> SetSelect(IReadOnlyList<LaunchItem> items, int index, bool target)
     {
         if (index < 0 || index >= items.Count)
         {
@@ -123,7 +143,39 @@ public sealed class ItemUseCase(IConfigStore store)
         }
 
         return items.Select((item, i) =>
-            i == index ? item with { Selected = !item.Selected } : item).ToList();
+            i == index ? item with { Selected = target } : item).ToList();
+    }
+
+    /// <summary>
+    /// Resolves by stable <paramref name="id"/> instead of reference: deferred
+    /// commands may carry an item instance that was replaced by an earlier
+    /// collection rebuild (records are immutable, so rebuilds create new
+    /// instances). The id survives, so rapid double-toggles still apply.
+    /// </summary>
+    public static IReadOnlyList<LaunchItem> SetSelectById(IReadOnlyList<LaunchItem> items, string id, bool target)
+    {
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (items[i].Id == id)
+            {
+                return SetSelect(items, i, target);
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>Deselect everything. Legacy behavior: after a batch launch the
+    /// selection is cleared so a second "Launch Selected" cannot re-fire the
+    /// same terminals (archive/launchpad-rs app.rs batch_launch).</summary>
+    public static IReadOnlyList<LaunchItem> ClearSelection(IReadOnlyList<LaunchItem> items)
+    {
+        if (items.All(i => !i.Selected))
+        {
+            return items;
+        }
+
+        return items.Select(i => i with { Selected = false }).ToList();
     }
 
     public static IReadOnlyList<LaunchItem> ToggleSelectAll(IReadOnlyList<LaunchItem> items)

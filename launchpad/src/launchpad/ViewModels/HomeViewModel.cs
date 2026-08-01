@@ -50,7 +50,13 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public string RecentName => _settings.LaunchHistory.FirstOrDefault() ?? "--";
 
-    public bool IsEmpty => Items.Count == 0;
+    /// <summary>True only when the full (unfiltered) list is empty — matches
+    /// legacy: the "no items yet" hint never shows for a search with no hits.</summary>
+    public bool IsEmpty => _all.Count == 0;
+
+    /// <summary>Search active but nothing matches; the grid shows a "no matches"
+    /// hint instead of the misleading empty-state CTA.</summary>
+    public bool HasNoMatches => _all.Count > 0 && Items.Count == 0;
 
     public bool HasStatus => !string.IsNullOrEmpty(_statusText);
 
@@ -102,7 +108,19 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void Load()
     {
-        _all = _itemUseCase.LoadItems().ToList();
+        var (result, recoveryNote) = _itemUseCase.LoadItems();
+        if (result.IsError)
+        {
+            StatusText = $"Config error: {result.FirstError.Description}";
+            return;
+        }
+
+        _all = result.Value.ToList();
+        if (recoveryNote is not null)
+        {
+            StatusText = recoveryNote;
+        }
+
         RefreshItems();
     }
 
@@ -114,6 +132,7 @@ public sealed partial class HomeViewModel : ObservableObject
         OnPropertyChanged(nameof(ItemCount));
         OnPropertyChanged(nameof(SelectedCount));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasNoMatches));
     }
 
     /// <summary>Persist both files; surfaces the first failure in the status bar.</summary>
@@ -138,6 +157,9 @@ public sealed partial class HomeViewModel : ObservableObject
 
     /// <summary>Full unfiltered list, for id-collision checks when building new items.</summary>
     public IReadOnlyList<LaunchItem> AllItems => _all;
+
+    /// <summary>Checkbox click intent: stable id + the target state captured at click time.</summary>
+    public sealed record SelectRequest(string Id, bool Target);
 
     public void ApplyEdit(LaunchItem edited, int? index)
     {
@@ -173,16 +195,15 @@ public sealed partial class HomeViewModel : ObservableObject
         RefreshItems();
     }
 
+    /// <summary>
+    /// Applies the checkbox state captured at click time. Resolves by id (not
+    /// reference): deferred execution may run after a rebuild replaced the item
+    /// instance, and target-state semantics make re-invocations idempotent.
+    /// </summary>
     [RelayCommand]
-    private void ToggleSelect(LaunchItem item)
+    private void SetSelect(SelectRequest request)
     {
-        var index = IndexOf(item);
-        if (index < 0)
-        {
-            return;
-        }
-
-        _all = ItemUseCase.ToggleSelect(_all, index).ToList();
+        _all = ItemUseCase.SetSelectById(_all, request.Id, request.Target).ToList();
         TrySave();
         RefreshItems();
     }
@@ -281,7 +302,11 @@ public sealed partial class HomeViewModel : ObservableObject
     {
         var (succeeded, failedIndexes) = _launchUseCase.LaunchMany(selected);
         Settings = SettingsUseCase.PushHistoryMany(Settings, selected, failedIndexes.ToHashSet());
+        // Legacy: clear the selection after a batch launch so the same terminals
+        // cannot be re-fired by a second click (archive/launchpad-rs batch_launch).
+        _all = ItemUseCase.ClearSelection(_all).ToList();
         TrySave();
+        RefreshItems();
         StatusText = succeeded == selected.Count
             ? $"Launched {succeeded} items"
             : $"Launched {succeeded} of {selected.Count} items ({failedIndexes.Count} failed)";

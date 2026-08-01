@@ -11,16 +11,22 @@ public sealed partial class HomeView : Page
 {
     private readonly IDirectoryChecker _directoryChecker;
     private readonly IDirectoryPicker _directoryPicker;
+    private readonly IDialogService _dialogs;
     private readonly DispatcherTimer _themeTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private int? _lastAppsUseLightTheme;
 
     public HomeViewModel ViewModel { get; }
 
-    public HomeView(HomeViewModel viewModel, IDirectoryChecker directoryChecker, IDirectoryPicker directoryPicker)
+    public HomeView(
+        HomeViewModel viewModel,
+        IDirectoryChecker directoryChecker,
+        IDirectoryPicker directoryPicker,
+        IDialogService dialogs)
     {
         ViewModel = viewModel;
         _directoryChecker = directoryChecker;
         _directoryPicker = directoryPicker;
+        _dialogs = dialogs;
         InitializeComponent();
         DataContext = ViewModel;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -106,10 +112,16 @@ public sealed partial class HomeView : Page
 
     private void OnEdit(object sender, RoutedEventArgs e) => _ = ShowEditAsync(ItemFrom(sender));
 
-    private void OnDelete(object sender, RoutedEventArgs e)
+    private void OnDelete(object sender, RoutedEventArgs e) => _ = ConfirmAndDeleteAsync(ItemFrom(sender));
+
+    /// <summary>Legacy behavior: the card Delete button asks before removing
+    /// ("This cannot be undone"); the edit dialog's Delete stays immediate.</summary>
+    private async Task ConfirmAndDeleteAsync(LaunchItem item)
     {
-        var item = ItemFrom(sender);
-        Defer(() => ViewModel.DeleteCommand.Execute(item));
+        if (await _dialogs.ConfirmDeleteAsync(item))
+        {
+            Defer(() => ViewModel.DeleteCommand.Execute(item));
+        }
     }
 
     private void OnMoveUp(object sender, RoutedEventArgs e)
@@ -124,11 +136,19 @@ public sealed partial class HomeView : Page
         Defer(() => ViewModel.MoveDownCommand.Execute(item));
     }
 
-    private void OnSelectToggled(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Click fires only from user input (ToggleButton.OnClick is raised by the
+    /// input pipeline; binding-driven IsChecked changes raise Checked/Unchecked
+    /// instead), so no binding feedback loop can re-trigger this handler. The
+    /// target state is captured synchronously at click time and applied deferred
+    /// by id, keeping rapid double-clicks correct.
+    /// </summary>
+    private void OnSelectClicked(object sender, RoutedEventArgs e)
     {
-        if ((sender as CheckBox)?.DataContext is LaunchItem item)
+        if (sender is CheckBox { DataContext: LaunchItem item } box)
         {
-            Defer(() => ViewModel.ToggleSelectCommand.Execute(item));
+            var target = box.IsChecked == true;
+            Defer(() => ViewModel.SetSelectCommand.Execute(new HomeViewModel.SelectRequest(item.Id, target)));
         }
     }
 

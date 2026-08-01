@@ -143,12 +143,55 @@ public sealed class ItemUseCaseTests
     }
 
     [Fact]
-    public void ToggleSelect_FlipsOnlyTarget()
+    public void SetSelect_SetsTargetState_NotFlip()
     {
-        var result = ItemUseCase.ToggleSelect([Item("a"), Item("b")], 0);
+        var items = new[] { Item("a") with { Selected = true }, Item("b") };
+
+        // Target false on an already-selected item stays false (idempotent, no flip back).
+        var result = ItemUseCase.SetSelect(items, 0, false);
+
+        Assert.False(result[0].Selected);
+        Assert.False(result[1].Selected);
+    }
+
+    [Fact]
+    public void SetSelect_ReapplyingSameTarget_IsIdempotent()
+    {
+        var result = ItemUseCase.SetSelect([Item("a"), Item("b")], 0, true);
 
         Assert.True(result[0].Selected);
         Assert.False(result[1].Selected);
+    }
+
+    [Fact]
+    public void SetSelect_OutOfRange_ReturnsSameList()
+    {
+        var items = new[] { Item("a"), Item("b") };
+
+        Assert.Same(items, ItemUseCase.SetSelect(items, 5, true));
+    }
+
+    [Fact]
+    public void SetSelectById_ResolvesByStableId_AfterInstanceReplacement()
+    {
+        // Simulates the double-click race: the item instance was replaced by a
+        // collection rebuild, but the id survives; the stale reference's id
+        // must still resolve and apply the target state.
+        var rebuilt = new[] { Item("a") with { Selected = true }, Item("b") };
+        var staleReference = Item("a");
+
+        var result = ItemUseCase.SetSelectById(rebuilt, staleReference.Id, false);
+
+        Assert.False(result[0].Selected);
+        Assert.False(result[1].Selected);
+    }
+
+    [Fact]
+    public void SetSelectById_UnknownId_ReturnsSameList()
+    {
+        var items = new[] { Item("a"), Item("b") };
+
+        Assert.Same(items, ItemUseCase.SetSelectById(items, "missing", true));
     }
 
     [Fact]
@@ -171,6 +214,8 @@ public sealed class ItemUseCaseTests
 
     internal sealed class FakeStore : IConfigStore
     {
+        public string? LastRecoveryNote => null;
+
         public List<IReadOnlyList<LaunchItem>> Saved { get; } = [];
 
         public IReadOnlyList<LaunchItem> ReadItems() => [];
@@ -186,6 +231,8 @@ public sealed class ItemUseCaseTests
 
     internal sealed class ThrowingStore : IConfigStore
     {
+        public string? LastRecoveryNote => null;
+
         public IReadOnlyList<LaunchItem> ReadItems() => [];
 
         public AppSettings ReadSettings() => new();

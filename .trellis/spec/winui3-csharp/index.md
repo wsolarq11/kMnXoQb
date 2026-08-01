@@ -45,11 +45,11 @@ launchpad/
 10. **System.Text.Json**：读旧配置用 `PropertyNameCaseInsensitive=true` + `PropertyNamingPolicy.SnakeCaseLower`（写 snake_case 保持兼容）；record 相等性会被 JsonExtensionData 空字典破坏（测试用字段级断言）。
 11. **x:Bind 在 DataTemplate 里访问外层**：用传统 `{Binding DataContext.X, ElementName=Root}` 或事件转发，x:Bind 默认绑定 item。
 12. **cmd.exe 引号陷阱（契约测试捕获）**：cmd `/k` 不用标准 argv 引号规则（`\"` 是字面量），`cd /d "DIR" && ...` 在含引号/空格目录下整条命令不执行。目录一律经 `ProcessStartInfo.WorkingDirectory` 传递，`Args = ["/k", command]`。pwsh `-Command` 走标准 argv 解析（`\"` 有效），单引号转义 `'` → `''` 可用。
-13. **`FirstOrDefault` 对值类型元组返回非空默认值**：`DangerousFlagDetector.DangerousReason` 曾用 `FirstOrDefault(...).Reason`，LanguageKey 是枚举，默认元组给 `(null, ToggleConfirm)` —— 安全命令被误标为危险。无匹配必须显式返回 null（显式循环）。
-14. **枚举在条件表达式里需显式可空**：`condition ? LanguageKey.X : null` 编译报 CS0173，写 `(LanguageKey?)LanguageKey.X`。
 13. **dotnet publish 不复制 XAML 编译产物**（xbf/pri 缺失 → 发布版启动即 XamlParseException）。publish.ps1 从 Release bin 复制 `*.xbf`、`launchpad.pri`、`Views/`、`Themes/`。
 14. **窗口最小化坐标**：最小化窗口的 Position 是 -32000（离屏）。`OnClosed` 只保存最后一次 `OverlappedPresenterState.Restored` 的位置（`AppWindow.Changed` 追踪）；恢复前经 `WindowPosition.ClampToVisible` 纠偏。OverlappedPresenter 的枚举值是 `Restored` 不是 `Normal`。
 15. **Process.Start 目录错误码**：目录不存在抛 `Win32Exception`，NativeErrorCode=267（ERROR_DIRECTORY）而非 3。TryLaunch 把 267/3 都映射为 WorkingDirectoryMissing。
+16. **`FirstOrDefault` 对值类型元组返回非空默认值**：`DangerousFlagDetector.DangerousReason` 曾用 `FirstOrDefault(...).Reason`，LanguageKey 是枚举，默认元组给 `(null, ToggleConfirm)` —— 安全命令被误标为危险。无匹配必须显式返回 null（显式循环）。
+17. **枚举在条件表达式里需显式可空**：`condition ? LanguageKey.X : null` 编译报 CS0173，写 `(LanguageKey?)LanguageKey.X`。
 
 ## 约定
 

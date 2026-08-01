@@ -11,6 +11,7 @@ import { AboutDialog } from "./components/AboutDialog";
 import { StatusBar } from "./components/StatusBar";
 import { applyTheme } from "./lib/theme";
 import { installGlobalKeys } from "./lib/keyboard";
+import { useGridPlan } from "./hooks/useGridPlan";
 import { t } from "./i18n/keys";
 import "./App.css";
 
@@ -59,6 +60,8 @@ function App() {
     ),
   );
 
+  const { ref, plan } = useGridPlan(visible.length);
+
   return (
     <main className="app">
       {loading && (
@@ -69,7 +72,16 @@ function App() {
       )}
       <HeaderBar onNew={openNew} />
       <StatBar />
-      <section className="item-grid">
+      <section
+        ref={ref}
+        className="item-grid"
+        data-scroll={plan.scroll || undefined}
+        style={
+          plan.columns > 0
+            ? { gridTemplateColumns: `repeat(${plan.columns}, minmax(0, 1fr))` }
+            : undefined
+        }
+      >
         {visible.map((item, index) => (
           <ItemCard key={item.id} item={item} index={index} total={visible.length} query={searchQuery} />
         ))}

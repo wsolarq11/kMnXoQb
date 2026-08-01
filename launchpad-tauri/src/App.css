@@ -1,8 +1,95 @@
+/* ============ Design tokens ============ */
 :root {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
   color-scheme: light dark;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
+
+  --ease: 0.15s ease;
+  --ease-theme: 0.18s ease;
+
+  /* Light palette */
+  --bg-app: #f6f6f7;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f0f0f3;
+  --bg-header: #f2f2f4;
+  --bg-input: #ffffff;
+  --bg-code: #f6f6f3;
+  --bg-elevated: #ffffff;
+  --fg-primary: #1f1f1f;
+  --fg-secondary: #5f5f66;
+  --fg-tertiary: #8a8a92;
+  --fg-mono: #8a6d1f;
+  --border-subtle: #e5e5e9;
+  --border-strong: #cfcfd6;
+  --accent: #2f6fed;
+  --accent-hover: #2456c4;
+  --danger: #d13438;
+  --danger-hover: #b02e32;
+  --on-accent: #ffffff;
+  --on-danger: #ffffff;
 }
 
+/* Dark palette: forced by the setting via data-theme="dark", or by the
+   system when the setting is "system" (no data-theme attribute). */
+:root[data-theme="dark"] {
+  --bg-app: #1b1b1f;
+  --bg-surface: #232329;
+  --bg-surface-hover: #2c2c33;
+  --bg-header: #202024;
+  --bg-input: #2a2a30;
+  --bg-code: #2a2a26;
+  --bg-elevated: #26262c;
+  --fg-primary: #ececf1;
+  --fg-secondary: #a3a3ab;
+  --fg-tertiary: #71717b;
+  --fg-mono: #e0b95c;
+  --border-subtle: #34343c;
+  --border-strong: #45454f;
+  --accent: #4d8aff;
+  --accent-hover: #3f76e8;
+  --danger: #f05555;
+  --danger-hover: #ff6b6b;
+  --on-accent: #0d1017;
+  --on-danger: #0d1017;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-app: #1b1b1f;
+    --bg-surface: #232329;
+    --bg-surface-hover: #2c2c33;
+    --bg-header: #202024;
+    --bg-input: #2a2a30;
+    --bg-code: #2a2a26;
+    --bg-elevated: #26262c;
+    --fg-primary: #ececf1;
+    --fg-secondary: #a3a3ab;
+    --fg-tertiary: #71717b;
+    --fg-mono: #e0b95c;
+    --border-subtle: #34343c;
+    --border-strong: #45454f;
+    --accent: #4d8aff;
+    --accent-hover: #3f76e8;
+    --danger: #f05555;
+    --danger-hover: #ff6b6b;
+    --on-accent: #0d1017;
+    --on-danger: #0d1017;
+  }
+}
+
+/* ============ Base ============ */
 * {
   box-sizing: border-box;
 }
@@ -18,47 +105,78 @@ body {
   height: 100vh;
 }
 
+/* ============ Header / stat / status bars ============ */
 .header-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-2);
+  padding: 10px var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-header);
 }
 
 .search-input {
   flex: 1;
   padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   background: var(--bg-input);
-  color: var(--text);
+  color: var(--fg-primary);
   outline: none;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: border-color var(--ease), box-shadow var(--ease), background-color var(--ease-theme);
+}
+
+.search-input::placeholder {
+  color: var(--fg-tertiary);
 }
 
 .search-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .stat-bar {
+  position: relative;
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 4px 12px;
   font-size: 12px;
-  color: var(--text-dim);
-  border-bottom: 1px solid var(--border);
+  color: var(--fg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
+.stat-about {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+}
+
+.status-bar {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--fg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-header);
+}
+
+/* ============ Card grid ============ */
 .item-grid {
   flex: 1;
-  overflow-y: auto;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
+  min-height: 0;
+  padding: 14px var(--space-4);
+  display: grid;
   gap: 10px;
+  /* Fill mode: rows share the container height so every card is visible. */
+  grid-auto-rows: minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+}
+
+/* Scroll fallback: cards keep their readable size, the grid scrolls. */
+.item-grid[data-scroll] {
+  grid-auto-rows: auto;
+  align-content: start;
+  overflow-y: auto;
 }
 
 .item-grid::-webkit-scrollbar {
@@ -66,58 +184,88 @@ body {
 }
 
 .item-grid::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--border-strong);
   border-radius: 5px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .item-grid::-webkit-scrollbar-thumb:hover {
-  background: var(--text-dim);
+  background: var(--fg-tertiary);
   background-clip: padding-box;
 }
 
+/* ============ Cards ============ */
 .item-card {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-card);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  /* clip (not hidden): still clips fill-mode overflow, but unlike hidden it
+     does not collapse auto-sized grid rows to the card's padding height
+     (verified in Chromium: hidden -> 26px, clip -> 87px natural height). */
+  overflow: clip;
+  transition: box-shadow var(--ease), transform var(--ease), border-color var(--ease),
+    background-color var(--ease-theme);
 }
 
 .item-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+  border-color: var(--border-strong);
+}
+
+.item-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 2px;
 }
 
 .item-card.dangerous {
   border-color: var(--danger);
-  box-shadow: inset 3px 0 0 var(--danger);
+  box-shadow: inset 3px 0 0 var(--danger), var(--shadow-sm);
+}
+
+.item-card.dangerous:hover {
+  box-shadow: inset 3px 0 0 var(--danger), var(--shadow-md);
 }
 
 .item-card.selected {
   border-color: var(--accent);
 }
 
-.item-card.dangerous {
-  border-color: var(--danger);
+.card-check {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 2px;
+  cursor: pointer;
+}
+
+.card-check input {
+  accent-color: var(--accent);
 }
 
 .card-main {
   flex: 1;
-  cursor: pointer;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .card-title {
   font-weight: 600;
+  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .danger-icon {
@@ -126,7 +274,7 @@ body {
 
 .card-dir {
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--fg-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -135,22 +283,25 @@ body {
 .card-cmd {
   display: block;
   font-size: 12px;
-  color: var(--text-mono);
+  color: var(--fg-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   background: var(--bg-code);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px 6px;
   margin-top: 4px;
 }
 
+/* 2x2 action cluster so the card stays compact when rows shrink. */
 .card-actions {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 28px);
   gap: 2px;
+  flex-shrink: 0;
 }
 
+/* ============ Buttons ============ */
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -158,42 +309,80 @@ body {
   width: 28px;
   height: 28px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--fg-secondary);
   cursor: pointer;
-}
-
-.icon-btn {
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background var(--ease), color var(--ease);
 }
 
 .icon-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+  background: var(--bg-surface-hover);
+  color: var(--fg-primary);
 }
 
 .icon-btn.danger:hover {
   color: var(--danger);
 }
 
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-btn:disabled:hover {
+  background: transparent;
+  color: var(--fg-secondary);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 1px;
+}
+
 .primary-btn,
 .ghost-btn,
 .danger-btn {
   padding: 7px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  transition: background 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
+  transition: background var(--ease), color var(--ease), box-shadow var(--ease),
+    transform 0.08s ease;
+}
+
+.primary-btn {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
 }
 
 .primary-btn:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 2px 8px rgba(47, 111, 237, 0.25);
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.danger-btn {
+  background: var(--danger);
+  color: var(--on-danger);
+  border-color: var(--danger);
+}
+
+.danger-btn:hover {
+  background: var(--danger-hover);
+}
+
+.ghost-btn {
+  background: transparent;
+  color: var(--fg-primary);
+}
+
+.ghost-btn:hover {
+  background: var(--bg-surface-hover);
 }
 
 .primary-btn:active,
@@ -202,33 +391,43 @@ body {
   transform: scale(0.97);
 }
 
-.primary-btn {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
+.primary-btn:focus-visible,
+.ghost-btn:focus-visible,
+.danger-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  outline-offset: 2px;
 }
 
-.danger-btn {
-  background: var(--danger);
-  color: #fff;
-  border-color: var(--danger);
-}
-
-.ghost-btn {
-  background: transparent;
-  color: var(--text);
-}
-
+/* ============ Empty state ============ */
 .empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 48px 0;
-  color: var(--text-dim);
+  color: var(--fg-tertiary);
 }
 
 .empty-state h2 {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
+  color: var(--fg-secondary);
+  font-weight: 600;
+  font-size: 16px;
 }
 
+.empty-state p {
+  margin: 0 0 var(--space-3);
+}
+
+.empty-icon {
+  color: var(--fg-tertiary);
+  opacity: 0.6;
+  margin-bottom: var(--space-1);
+}
+
+/* ============ Dialogs ============ */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -237,22 +436,6 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
-}
-
-.modal {
-  width: 460px;
-  max-width: 92vw;
-  background: var(--bg-modal);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-
-.modal-overlay {
   animation: modal-fade 0.12s ease;
 }
 
@@ -265,19 +448,40 @@ body {
   }
 }
 
+.modal {
+  width: 460px;
+  max-width: 92vw;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-lg);
+}
+
 .modal label {
   font-size: 13px;
-  color: var(--text-dim);
+  color: var(--fg-secondary);
 }
 
 .modal input,
 .modal textarea {
   padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   background: var(--bg-input);
-  color: var(--text);
+  color: var(--fg-primary);
   font: inherit;
+  outline: none;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.modal input:focus,
+.modal textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .modal textarea {
@@ -300,8 +504,8 @@ body {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .error-text {
@@ -338,73 +542,64 @@ body {
 .confirm-list code {
   margin-left: auto;
   font-size: 11px;
-  color: var(--text-mono);
+  color: var(--fg-mono);
   max-width: 55%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.status-bar {
-  padding: 6px 12px;
+.about-modal {
+  align-items: center;
+  text-align: center;
+}
+
+.about-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.about-logo {
+  color: var(--accent);
+}
+
+.about-text {
+  color: var(--fg-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.about-shortcuts {
+  display: flex;
+  gap: var(--space-4);
   font-size: 12px;
-  color: var(--text-dim);
-  border-top: 1px solid var(--border);
-  background: var(--bg-header);
+  color: var(--fg-secondary);
+  margin: 6px 0;
 }
 
-/* Light theme (default). */
-:root {
-  --text: #1a1a1a;
-  --text-dim: #666;
-  --text-mono: #7a5c00;
-  --border: #d9d9d9;
-  --bg-header: #f5f5f5;
-  --bg-input: #fff;
-  --bg-card: #fff;
-  --bg-code: #f7f7f2;
-  --bg-modal: #fff;
-  --bg-hover: #eee;
-  --accent: #2f6fed;
-  --danger: #d33;
+.about-shortcuts kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--border-subtle);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--bg-code);
+  font-family: inherit;
+  font-size: 11px;
+  margin-right: 4px;
 }
 
-/* Dark theme: forced by the setting via data-theme="dark", or by the system
-   when the setting is "system" (no data-theme attribute on the root). */
-:root[data-theme="dark"] {
-  --text: #e6e6e6;
-  --text-dim: #999;
-  --text-mono: #d9b35c;
-  --border: #3a3a3a;
-  --bg-header: #1e1e1e;
-  --bg-input: #262626;
-  --bg-card: #222;
-  --bg-code: #2b2b26;
-  --bg-modal: #262626;
-  --bg-hover: #333;
-  --accent: #4d8aff;
-  --danger: #f05555;
+/* ============ Search highlight ============ */
+mark.match {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--fg-primary);
+  border-radius: 3px;
+  padding: 0 1px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --text: #e6e6e6;
-    --text-dim: #999;
-    --text-mono: #d9b35c;
-    --border: #3a3a3a;
-    --bg-header: #1e1e1e;
-    --bg-input: #262626;
-    --bg-card: #222;
-    --bg-code: #2b2b26;
-    --bg-modal: #262626;
-    --bg-hover: #333;
-    --accent: #4d8aff;
-    --danger: #f05555;
-  }
-}
-
-/* Boot screen: visible while the app initializes (WebView2 cold start can
-   take tens of seconds; never leave the user staring at a blank window). */
+/* ============ Boot screen ============ */
 .boot-screen {
   position: absolute;
   inset: 0;
@@ -420,7 +615,7 @@ body {
 .boot-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--border);
+  border: 3px solid var(--border-subtle);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: boot-spin 0.9s linear infinite;
@@ -433,92 +628,17 @@ body {
 }
 
 .boot-screen p {
-  color: var(--text-dim);
+  color: var(--fg-secondary);
   font-size: 13px;
 }
 
-/* Empty state icon + About dialog */
-.empty-icon {
-  color: var(--text-dim);
-  opacity: 0.5;
-  margin-bottom: 4px;
-}
-
-.stat-bar {
-  position: relative;
-}
-
-.stat-about {
-  margin-left: auto;
-  width: 22px;
-  height: 22px;
-}
-
-.about-modal {
-  align-items: center;
-  text-align: center;
-}
-
-.about-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.about-logo {
-  color: var(--accent);
-}
-
-.about-text {
-  color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.about-shortcuts {
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
-  color: var(--text-dim);
-  margin: 6px 0;
-}
-
-.about-shortcuts kbd {
-  display: inline-block;
-  padding: 2px 6px;
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  background: var(--bg-code);
-  font-family: inherit;
-  font-size: 11px;
-  margin-right: 4px;
-}
-
-/* Search match highlight + disabled state + theme transition */
-mark.match {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-  color: var(--text);
-  border-radius: 3px;
-  padding: 0 1px;
-}
-
-.icon-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.icon-btn:disabled:hover {
-  background: transparent;
-  color: var(--text-dim);
-}
-
+/* ============ Theme transition ============ */
 body,
 .header-bar,
 .stat-bar,
 .status-bar,
-.item-card,
-.modal {
-  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+.modal,
+.boot-screen {
+  transition: background-color var(--ease-theme), border-color var(--ease-theme),
+    color var(--ease-theme);
 }

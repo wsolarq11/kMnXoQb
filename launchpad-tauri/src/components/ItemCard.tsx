@@ -23,25 +23,29 @@ export function ItemCard({ item, index, total, query }: Props) {
     );
 
   return (
-    <div className={`item-card${dangerous ? " dangerous" : ""}${item.selected ? " selected" : ""}`}>
-      <label className="card-check">
+    // Whole card launches on click; the checkbox and the action buttons are
+    // semantic regions and stop propagation so they never trigger a launch.
+    <div
+      className={`item-card${dangerous ? " dangerous" : ""}${item.selected ? " selected" : ""}`}
+      onClick={() => launchOne(item.id)}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        // Enter launches only when the card itself holds focus; buttons and
+        // the checkbox handle their own Enter without bubbling into launch.
+        if (e.key === "Enter" && e.target === e.currentTarget) {
+          e.preventDefault();
+          launchOne(item.id);
+        }
+      }}
+    >
+      <label className="card-check" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={item.selected}
           onChange={(e) => setSelect(item.id, e.currentTarget.checked)}
         />
       </label>
-      <div
-        className="card-main"
-        onClick={() => launchOne(item.id)}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            launchOne(item.id);
-          }
-        }}
-      >
+      <div className="card-main">
         <div className="card-title">
           {highlight(item.name, query)}
           {dangerous && <AlertTriangle size={14} className="danger-icon" />}
@@ -49,7 +53,7 @@ export function ItemCard({ item, index, total, query }: Props) {
         <div className="card-dir">{highlight(item.directory, query)}</div>
         <code className="card-cmd">{highlight(item.command, query)}</code>
       </div>
-      <div className="card-actions">
+      <div className="card-actions" onClick={(e) => e.stopPropagation()}>
         <button
           className="icon-btn"
           title={t("TooltipMoveUp", language)}

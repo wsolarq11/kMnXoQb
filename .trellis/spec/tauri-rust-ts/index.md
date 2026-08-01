@@ -36,9 +36,17 @@ list_items / create_item / update_item / delete_item / move_item / set_select / 
 13. **WiX light 的 `-cultures` 参数**：本环境用冒号语法（`-cultures:en-US`）；空格语法会把文化名当输入文件（"cannot find the file 'en-US' with type 'Source'"）。tauri CLI 内部用冒号，无碍。
 14. **MSI 静默安装要在 PowerShell 里跑**：Git Bash 会把 `/i` `/qn` 当路径转换导致 msiexec 挂起。
 
+## 前端视觉规范（2026-08-02 卡片网格任务确立）
+
+- 卡片网格：`src/lib/grid.ts` 纯函数 `planGrid`（枚举列数使卡片宽高比最接近 φ=1.618，卡片同时受最小宽 240px / 最小高 96px 约束，无解转滚动兜底）+ `src/hooks/useGridPlan.ts`（ResizeObserver + 100ms 防抖）。改布局参数时同步改 `grid.test.ts` 的断言（用例注释含逐步数学）。
+- 主题 token：CSS 变量分层（`App.css` 顶部三块：浅色默认 / `[data-theme="dark"]` / `prefers-color-scheme` 深色）。背景 7 层、文本 3 级（primary/secondary/tertiary）、边框 2 级、accent/danger 各带 hover 变体。
+- **对比度门槛（实测约束，勿凭感觉调色）**：正文 ≥ 7:1、次要 ≥ 4.5:1、弱化 ≥ 3:1、按钮文字 ≥ 4.5:1。浅色主题 accent `#2f6fed` 白字 4.55 达标；但深色主题亮强调色（`#4d8aff` 白字仅 3.28）必须配深色文字——按钮文字走 `--on-accent` / `--on-danger` 变量（浅色 `#fff`，深色 `#0d1017`），不要硬编码 `#fff`。
+- **`overflow: hidden` 塌缩陷阱（Chromium 实测）**：CSS Grid `grid-auto-rows: auto` 下，`overflow: hidden` 的 flex 容器卡片其固有高度贡献被计算为仅 padding+border（480x360 窗口 + 10 条目实测卡片 26px，内容 61px 被裁切）。改用 `overflow: clip`（同样裁切溢出，但不参与固有尺寸计算，卡片恢复 87px 自然高度）。新增网格卡片务必用 clip 而非 hidden。
+- **planGrid 必须收 content-box 尺寸**：ResizeObserver 回调用 `entry.contentRect`；初始计算用 `getBoundingClientRect()` 减 `.item-grid` padding（16x2 / 14x2，常量与 App.css 同步注释）。传 border-box 会使 minWidth/minHeight 阈值偏移 32x28px（例：计划 240px 宽实际 208px）。
+
 ## 测试
 
 - 单测：core 内联 `#[cfg(test)]` + `tests/`（config_store/json_round_trip/spawner_contract/terminal_contract）。
 - 契约测试真实 spawn pwsh/cmd/wt（无 wt 跳过）；目录用例覆盖空格/引号/分号/&/中文。
-- 前端 vitest：键表完整性（62 键 × 2 语言）、danger 工具、store 流转（mock invoke）。
+- 前端 vitest：键表完整性（62 键 × 2 语言）、danger 工具、store 流转（mock invoke）、grid 布局算法。
 - 提交前：`cargo test` + `npx vitest run` + `npx tsc --noEmit` 全绿。

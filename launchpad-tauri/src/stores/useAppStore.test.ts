@@ -29,6 +29,8 @@ describe("useAppStore", () => {
       editing: null,
       newDialogOpen: false,
       deleteTarget: null,
+      aboutOpen: false,
+      lastLaunchRef: { id: "", at: 0 },
     });
   });
 

@@ -1,14 +1,20 @@
 import { Pencil, Trash2, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
 import { useAppStore } from "../stores/useAppStore";
 import { t } from "../i18n/keys";
+import { highlight } from "../lib/highlight";
 import type { LaunchItem } from "../types";
 
 interface Props {
   item: LaunchItem;
+  index: number;
+  total: number;
+  query: string;
 }
 
-export function ItemCard({ item }: Props) {
+export function ItemCard({ item, index, total, query }: Props) {
   const { language, setSelect, moveItem, askDelete, openEdit, launchOne } = useAppStore();
+  const canMoveUp = index > 0;
+  const canMoveDown = index < total - 1;
 
   const dangerous =
     item.command.includes("--dangerously") ||
@@ -37,16 +43,17 @@ export function ItemCard({ item }: Props) {
         }}
       >
         <div className="card-title">
-          {item.name}
+          {highlight(item.name, query)}
           {dangerous && <AlertTriangle size={14} className="danger-icon" />}
         </div>
-        <div className="card-dir">{item.directory}</div>
-        <code className="card-cmd">{item.command}</code>
+        <div className="card-dir">{highlight(item.directory, query)}</div>
+        <code className="card-cmd">{highlight(item.command, query)}</code>
       </div>
       <div className="card-actions">
         <button
           className="icon-btn"
           title={t("TooltipMoveUp", language)}
+          disabled={!canMoveUp}
           onClick={() => moveItem(item.id, -1)}
         >
           <ChevronUp size={14} />
@@ -54,6 +61,7 @@ export function ItemCard({ item }: Props) {
         <button
           className="icon-btn"
           title={t("TooltipMoveDown", language)}
+          disabled={!canMoveDown}
           onClick={() => moveItem(item.id, 1)}
         >
           <ChevronDown size={14} />

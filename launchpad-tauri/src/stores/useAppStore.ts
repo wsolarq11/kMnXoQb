@@ -43,6 +43,8 @@ interface AppState {
   newDialogOpen: boolean;
   deleteTarget: LaunchItem | null;
   aboutOpen: boolean;
+  /** Click-launch debounce state (double click must not launch twice). */
+  lastLaunchRef: { id: string; at: number };
 
   init: () => Promise<void>;
   refreshItems: () => Promise<void>;
@@ -105,6 +107,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   newDialogOpen: false,
   deleteTarget: null,
   aboutOpen: false,
+  lastLaunchRef: { id: "", at: 0 },
 
   init: async () => {
     set({ loading: true });
@@ -209,6 +212,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   launchOne: async (id) => {
+    // Click-launch semantics: a fast double click must not launch twice.
+    const now = Date.now();
+    if (get().lastLaunchRef.id === id && now - get().lastLaunchRef.at < 500) return;
+    set({ lastLaunchRef: { id, at: now } });
     try {
       const info: ConfirmInfo = await api.needsConfirm(id);
       if (info.needs_confirm) {

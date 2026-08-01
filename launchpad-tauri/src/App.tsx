@@ -70,8 +70,8 @@ function App() {
       <HeaderBar onNew={openNew} />
       <StatBar />
       <section className="item-grid">
-        {visible.map((item) => (
-          <ItemCard key={item.id} item={item} />
+        {visible.map((item, index) => (
+          <ItemCard key={item.id} item={item} index={index} total={visible.length} query={searchQuery} />
         ))}
         <EmptyState />
       </section>

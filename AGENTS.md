@@ -19,13 +19,3 @@ If you're using Codex or another agent-capable tool, additional project-scoped h
 Managed by Trellis. Edits outside this block are preserved; edits inside may be overwritten by a future `trellis update`.
 
 <!-- TRELLIS:END -->
-
-## Quick Reference
-
-- **Build**: `cd launchpad && dotnet build src/launchpad/launchpad.csproj`
-- **Test**: `cd launchpad && dotnet test tests/launchpad.Core.Tests/` (60 tests)
-- **Run**: `cd launchpad && dotnet run --project src/launchpad`
-- **Architecture**: hexagonal — UI → UseCases → Core ← Infrastructure (see CLAUDE.md)
-- **Safety**: NO shell exec — `Process.ArgumentList` argv array
-- **Config**: config/config.json + config/settings.json (snake_case, legacy-compatible)
-- **CI**: `.github/workflows/ci.yml` — Windows + dotnet build/test

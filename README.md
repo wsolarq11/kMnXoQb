@@ -1,0 +1,100 @@
+# Launchpad
+
+Windows 原生启动器：在一个界面里集中管理并一键启动 AI CLI 工具（snow / codex / claude / opencode 等），每个条目在指定目录下以指定终端启动。
+
+## 功能
+
+- 启动项列表：增删改、排序、筛选、单选/全选、批量启动
+- 终端自动回退：Windows Terminal（`wt.exe`）→ PowerShell（`pwsh.exe`）→ `cmd.exe`，按可用性逐级降级
+- 危险命令确认：命令含 `dangerously` / `yolo` / `skip-permissions` / `bypass-approvals` / `bypass-sandbox` 等 flag 时，在编辑框、卡片、确认对话框三处警告
+- 主题切换：跟随系统 / 浅色 / 深色（Win11 Mica，Win10 自动回退 Acrylic）
+- 单实例运行；窗口位置记忆（最小化离屏坐标自动纠偏）
+- 配置写盘前自动备份到 `config.json.bak`，损坏时自动恢复并在状态栏提示
+- 启动历史记录（最近启动的条目）
+
+## 技术栈
+
+- .NET 10 + WinUI 3（Windows App SDK 2.3.1），unpackaged 自包含部署
+- CommunityToolkit.Mvvm（MVVM）、Microsoft.Extensions.DependencyInjection（DI）
+- ErrorOr（预期失败结构化错误）、xUnit + ArchUnitNET + Verify（测试）
+- lucide 图标（字体方案）
+
+## 构建与运行
+
+需要 .NET 10 SDK（Windows 10 1809+）。
+
+```bash
+cd launchpad
+
+# 构建
+dotnet build src/launchpad/launchpad.csproj --configuration Release
+
+# 运行
+dotnet run --project src/launchpad/launchpad.csproj
+```
+
+## 测试
+
+```bash
+cd launchpad
+
+# 单元测试 + 架构测试（依赖方向、分层约束由 ArchUnitNET 机器执行）
+dotnet test tests/launchpad.Core.Tests/
+
+# 契约测试（真实 spawn pwsh/cmd/wt；无 Windows Terminal 时 wt 用例自动跳过）
+dotnet test tests/launchpad.IntegrationTests/
+```
+
+## 发布
+
+WinUI 3 无法单文件发布（Windows App SDK 原生依赖以独立文件部署），发布脚本会补齐 dotnet publish 不产出的 XAML 编译产物（xbf/pri）并放置 config 模板：
+
+```bash
+cd launchpad
+powershell -ExecutionPolicy Bypass -File publish.ps1
+# 产物在 launchpad/publish/，运行 publish\launchpad.exe
+```
+
+## 配置
+
+配置目录从可执行文件位置向上搜索含 `config/` 的祖先目录（不依赖工作目录），首次运行自动创建。
+
+`config/config.json`（启动项列表，snake_case，缺失 `confirm` 默认 `true`）：
+
+```json
+[
+  {
+    "name": "claude-example",
+    "directory": "D:\\projects\\your-project",
+    "command": "claude --dangerously-skip-permissions",
+    "confirm": true,
+    "id": "claude-example",
+    "selected": false
+  }
+]
+```
+
+字段：`name`（必填）、`directory`（必填）、`command`（必填）、`id`（必填，历史遗留格式：小写、空格转下划线，冲突时追加数字后缀）、`confirm`（启动前确认，默认 true）、`selected`（批量启动选中态）、`terminal` / `tag` / `group`（可选）。
+
+`config/settings.json`（应用设置）：
+
+```json
+{
+  "confirm_enabled": false,
+  "theme": "system",
+  "launch_history": [],
+  "window_state": { "x": 0, "y": 0, "width": 800, "height": 600 }
+}
+```
+
+`theme` 取值 `system` / `dark` / `light`；未知字段在写回时保留，不丢未来版本数据。
+
+仓库根 `config/config.example.json` 为启动项模板，发布时拷入产物目录。
+
+## 架构
+
+Clean Architecture，依赖方向只向下：UI → UseCases → Core ← Infrastructure。领域层（Core）是零 I/O 的纯函数核心（不可变 record + 纯决策），命令执行经 `Process.ArgumentList` argv 数组启动（零 shell 拼接，防命令注入）。详见 `CLAUDE.md` 与 `.trellis/spec/winui3-csharp/index.md`。
+
+## 历史
+
+2026-07-31 起由 Rust/Slint 与 Flutter 版本迁移至 WinUI 3 + C#（.NET 10），旧实现保留在 `archive/`（`launchpad-rs`、`launchpad_flutter`），行为对齐以测试断言为准。

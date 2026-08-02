@@ -9,24 +9,23 @@ using Microsoft.UI.Xaml.Controls;
 namespace Launchpad.Infrastructure;
 
 /// <summary>
-/// ContentDialog-backed confirmation. Requires an XamlRoot; the host element is
-/// captured at attach time and the XamlRoot is resolved lazily on each show —
+/// ContentDialog-backed confirmation. Requires an XamlRoot; the host element's
+/// XamlRoot is resolved lazily on each show via <see cref="IXamlRootProvider"/> —
 /// XamlRoot is not available right after Window.Activate (it is created during
-/// layout), so reading it at attach time yields null.
+/// layout), so the provider must be read at show time, not at construction.
 /// Dialog text is translated at show time from the current language; a dialog
 /// stays in the language it was opened with (modal, no switching mid-show).
 /// </summary>
 public sealed class DialogService : IDialogService
 {
     private readonly LanguageService _language;
-    private FrameworkElement? _host;
+    private readonly IXamlRootProvider _xamlRootProvider;
 
-    public DialogService(LanguageService language)
+    public DialogService(LanguageService language, IXamlRootProvider xamlRootProvider)
     {
         _language = language;
+        _xamlRootProvider = xamlRootProvider;
     }
-
-    public void Attach(FrameworkElement host) => _host = host;
 
     public async Task<bool> ConfirmLaunchAsync(LaunchItem item, string? dangerReason)
     {
@@ -70,9 +69,9 @@ public sealed class DialogService : IDialogService
     /// </summary>
     private XamlRoot GuardXamlRoot()
     {
-        var root = _host?.XamlRoot
+        var root = _xamlRootProvider.CurrentXamlRoot
             ?? throw new InvalidOperationException(
-                "DialogService.Attach was not called, or the host element is not loaded (must Attach the window content).");
+                "WindowHost.XamlRootSource is not set, or the host element is not loaded (composition root must assign it).");
         return root;
     }
 

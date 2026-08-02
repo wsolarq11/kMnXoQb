@@ -1,5 +1,4 @@
 using Launchpad.Core.Ports;
-using Microsoft.UI.Xaml;
 using Windows.Storage.Pickers;
 
 namespace Launchpad.Infrastructure;
@@ -10,17 +9,19 @@ namespace Launchpad.Infrastructure;
 /// </summary>
 public sealed class DirectoryPickerService : IDirectoryPicker
 {
-    private IntPtr _windowHandle;
+    private readonly IWindowHandleProvider _windowHandleProvider;
 
-    public void Attach(IntPtr hwnd) => _windowHandle = hwnd;
+    public DirectoryPickerService(IWindowHandleProvider windowHandleProvider)
+    {
+        _windowHandleProvider = windowHandleProvider;
+    }
 
     public async Task<string?> PickDirectoryAsync(string initialPath)
     {
         var picker = new FolderPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
         picker.FileTypeFilter.Add("*");
 
-        var hwnd = _windowHandle;
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, _windowHandleProvider.WindowHandle);
 
         var folder = await picker.PickSingleFolderAsync();
         return folder?.Path;

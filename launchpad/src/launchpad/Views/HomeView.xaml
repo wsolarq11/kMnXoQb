@@ -29,12 +29,12 @@
                 VerticalAlignment="Center" />
             <ToggleSwitch
                 Grid.Column="1"
-                Header="{x:Bind ViewModel.ConfirmText}"
+                Header="{x:Bind ViewModel.Texts.ConfirmText}"
                 OnContent="" OffContent=""
                 IsOn="{x:Bind ViewModel.ConfirmEnabled, Mode=TwoWay}" />
             <Button Grid.Column="2" Click="OnThemeToggle">
                 <ToolTipService.ToolTip>
-                    <ToolTip Content="{x:Bind ViewModel.ThemeTooltip}" />
+                    <ToolTip Content="{x:Bind ViewModel.Texts.ThemeTooltip}" />
                 </ToolTipService.ToolTip>
                 <FontIcon
                     Glyph="{x:Bind ViewModel.ThemeGlyph, Mode=OneWay}"
@@ -43,14 +43,14 @@
             </Button>
             <Button Grid.Column="3" Click="OnLanguageToggle">
                 <ToolTipService.ToolTip>
-                    <ToolTip Content="{x:Bind ViewModel.LanguageTooltip}" />
+                    <ToolTip Content="{x:Bind ViewModel.Texts.LanguageTooltip}" />
                 </ToolTipService.ToolTip>
                 <TextBlock Text="{x:Bind ViewModel.LanguageLabel}" />
             </Button>
             <Button Grid.Column="4" Click="OnNew" Style="{ThemeResource AccentButtonStyle}">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <FontIcon Glyph="{x:Bind glyphs:LucideGlyph.Plus, Mode=OneTime}" FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide" FontSize="14" />
-                    <TextBlock Text="{x:Bind ViewModel.NewButtonText}" />
+                    <TextBlock Text="{x:Bind ViewModel.Texts.NewButtonText}" />
                 </StackPanel>
             </Button>
         </Grid>
@@ -71,7 +71,7 @@
                         Foreground="{ThemeResource TextPrimaryBrush}"
                         VerticalAlignment="Center" />
                     <TextBlock
-                        Text="{x:Bind ViewModel.StatItemsText}"
+                        Text="{x:Bind ViewModel.Texts.StatItemsText}"
                         FontSize="11"
                         FontWeight="SemiBold"
                         Foreground="{ThemeResource TextSecondaryBrush}"
@@ -95,7 +95,7 @@
                         MaxWidth="280"
                         TextTrimming="CharacterEllipsis" />
                     <TextBlock
-                        Text="{x:Bind ViewModel.StatRecentText}"
+                        Text="{x:Bind ViewModel.Texts.StatRecentText}"
                         FontSize="11"
                         FontWeight="SemiBold"
                         Foreground="{ThemeResource TextSecondaryBrush}"
@@ -107,11 +107,11 @@
         <!-- Search + batch row -->
         <Grid Grid.Row="2" ColumnSpacing="12" ColumnDefinitions="*,Auto,Auto,Auto">
             <TextBox
-                PlaceholderText="{x:Bind ViewModel.SearchPlaceholderText}"
+                PlaceholderText="{x:Bind ViewModel.Texts.SearchPlaceholderText}"
                 Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
                 VerticalAlignment="Center" />
             <Button Grid.Column="1" Click="OnSelectAll" VerticalAlignment="Center">
-                <TextBlock Text="{x:Bind ViewModel.SelectAllText}" Foreground="{ThemeResource TextSecondaryBrush}" />
+                <TextBlock Text="{x:Bind ViewModel.Texts.SelectAllText}" Foreground="{ThemeResource TextSecondaryBrush}" />
             </Button>
             <TextBlock
                 Grid.Column="2"
@@ -123,7 +123,7 @@
                 Click="OnLaunchSelected"
                 Style="{ThemeResource AccentButtonStyle}"
                 VerticalAlignment="Center">
-                <TextBlock Text="{x:Bind ViewModel.LaunchSelectedText}" />
+                <TextBlock Text="{x:Bind ViewModel.Texts.LaunchSelectedText}" />
             </Button>
         </Grid>
 
@@ -159,16 +159,16 @@
                                         Foreground="{ThemeResource TextPrimaryBrush}"
                                         TextTrimming="CharacterEllipsis"
                                         VerticalAlignment="Center" />
-                                    <Button Grid.Column="1" ToolTipService.ToolTip="{Binding DataContext.TooltipEditText, ElementName=Root}" Click="OnEdit" Padding="4">
+                                    <Button Grid.Column="1" ToolTipService.ToolTip="{Binding DataContext.Texts.TooltipEditText, ElementName=Root}" Click="OnEdit" Padding="4">
                                         <FontIcon Glyph="{x:Bind glyphs:LucideGlyph.Pencil, Mode=OneTime}" FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
-                                    <Button Grid.Column="2" ToolTipService.ToolTip="{Binding DataContext.TooltipDeleteText, ElementName=Root}" Click="OnDelete" Padding="4">
+                                    <Button Grid.Column="2" ToolTipService.ToolTip="{Binding DataContext.Texts.TooltipDeleteText, ElementName=Root}" Click="OnDelete" Padding="4">
                                         <FontIcon Glyph="{x:Bind glyphs:LucideGlyph.Trash2, Mode=OneTime}" FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
-                                    <Button Grid.Column="3" ToolTipService.ToolTip="{Binding DataContext.TooltipMoveUpText, ElementName=Root}" Click="OnMoveUp" Padding="4">
+                                    <Button Grid.Column="3" ToolTipService.ToolTip="{Binding DataContext.Texts.TooltipMoveUpText, ElementName=Root}" Click="OnMoveUp" Padding="4">
                                         <FontIcon Glyph="{x:Bind glyphs:LucideGlyph.ChevronUp, Mode=OneTime}" FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
-                                    <Button Grid.Column="4" ToolTipService.ToolTip="{Binding DataContext.TooltipMoveDownText, ElementName=Root}" Click="OnMoveDown" Padding="4">
+                                    <Button Grid.Column="4" ToolTipService.ToolTip="{Binding DataContext.Texts.TooltipMoveDownText, ElementName=Root}" Click="OnMoveDown" Padding="4">
                                         <FontIcon Glyph="{x:Bind glyphs:LucideGlyph.ChevronDown, Mode=OneTime}" FontFamily="ms-appx:///Assets/Fonts/Lucide.ttf#Lucide" FontSize="12" />
                                     </Button>
                                     <CheckBox
@@ -228,15 +228,15 @@
                     Foreground="{ThemeResource AccentBrush}"
                     HorizontalAlignment="Center" />
                 <TextBlock
-                    Text="{x:Bind ViewModel.EmptyTitleText}"
+                    Text="{x:Bind ViewModel.Texts.EmptyTitleText}"
                     Foreground="{ThemeResource TextSecondaryBrush}"
                     HorizontalAlignment="Center" />
                 <TextBlock
-                    Text="{x:Bind ViewModel.EmptySubtitleText}"
+                    Text="{x:Bind ViewModel.Texts.EmptySubtitleText}"
                     FontSize="12"
                     Foreground="{ThemeResource TextTertiaryBrush}"
                     HorizontalAlignment="Center" />
-                <Button Content="{x:Bind ViewModel.EmptyButtonText}" Click="OnNew" HorizontalAlignment="Center" />
+                <Button Content="{x:Bind ViewModel.Texts.EmptyButtonText}" Click="OnNew" HorizontalAlignment="Center" />
             </StackPanel>
 
             <StackPanel
@@ -250,11 +250,11 @@
                     Foreground="{ThemeResource TextTertiaryBrush}"
                     HorizontalAlignment="Center" />
                 <TextBlock
-                    Text="{x:Bind ViewModel.NoMatchTitleText}"
+                    Text="{x:Bind ViewModel.Texts.NoMatchTitleText}"
                     Foreground="{ThemeResource TextSecondaryBrush}"
                     HorizontalAlignment="Center" />
                 <TextBlock
-                    Text="{x:Bind ViewModel.NoMatchSubtitleText}"
+                    Text="{x:Bind ViewModel.Texts.NoMatchSubtitleText}"
                     FontSize="12"
                     Foreground="{ThemeResource TextTertiaryBrush}"
                     HorizontalAlignment="Center" />

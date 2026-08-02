@@ -12,6 +12,7 @@ namespace Launchpad;
 public partial class App : Application
 {
     private readonly ServiceProvider _services;
+    private readonly WindowHost _windowHost = new();
     private Window? _window;
 
     public App()
@@ -54,7 +55,7 @@ public partial class App : Application
         return Path.Combine(AppContext.BaseDirectory, "config");
     }
 
-    private static ServiceProvider ConfigureServices()
+    private ServiceProvider ConfigureServices()
     {
         var services = new ServiceCollection();
         // D2: 配置目录沿用项目根的 config/（与 Flutter 版一致）。
@@ -67,6 +68,8 @@ public partial class App : Application
         services.AddSingleton<IProcessSpawner, ProcessSpawner>();
         services.AddSingleton<IDirectoryChecker, DirectoryChecker>();
         services.AddSingleton<IDirectoryPicker, DirectoryPickerService>();
+        services.AddSingleton<IWindowHandleProvider>(_windowHost);
+        services.AddSingleton<IXamlRootProvider>(_windowHost);
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IWindowService, WindowStateService>();
         services.AddSingleton<MainWindow>();
@@ -104,10 +107,10 @@ public partial class App : Application
 
         _window.Activate();
 
-        // DialogService resolves XamlRoot lazily from the host element on each show
-        // (XamlRoot is not available right after Activate — it is created during layout).
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
-        ((DirectoryPickerService)_services.GetRequiredService<IDirectoryPicker>()).Attach(hwnd);
-        ((DialogService)_services.GetRequiredService<IDialogService>()).Attach(homeView);
+        // Window host state is filled after Activate: the owner HWND, and the
+        // content element whose XamlRoot backs dialogs (XamlRoot is not available
+        // right after Activate — it is created during layout, hence the lazy source).
+        _windowHost.WindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+        _windowHost.XamlRootSource = () => homeView.XamlRoot;
     }
 }

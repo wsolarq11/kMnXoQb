@@ -13,8 +13,8 @@ namespace Launchpad.ViewModels;
 /// <summary>
 /// Home screen state: item list, search, selection, theme, language, launch
 /// orchestration. Thin shell over UseCases — all decisions live in the testable
-/// pure layer. Every visible text is a key lookup into <see cref="LanguageService"/>;
-/// a language switch re-raises all property notifications.
+/// pure layer. Static labels live in <see cref="HomeTexts"/>; language switches
+/// re-evaluate them through that class and rebuild the item collection here.
 /// </summary>
 public sealed partial class HomeViewModel : ObservableObject
 {
@@ -59,29 +59,10 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public string RecentName => Settings.LaunchHistory.FirstOrDefault() ?? "--";
 
-    // --- Localized text (keys resolved through LanguageService) ---
-    public string ConfirmText => _language[LanguageKey.ToggleConfirm];
-    public string NewButtonText => _language[LanguageKey.BtnNew];
-    public string SelectAllText => _language[LanguageKey.BtnSelectAll];
-    public string LaunchSelectedText => _language[LanguageKey.BtnLaunchSelected];
-    public string SearchPlaceholderText => _language[LanguageKey.SearchPlaceholder];
-    public string StatItemsText => _language[LanguageKey.StatItems];
-    public string StatRecentText => _language[LanguageKey.StatRecent];
-    public string EmptyTitleText => _language[LanguageKey.EmptyTitle];
-    public string EmptySubtitleText => _language[LanguageKey.EmptySubtitle];
-    public string EmptyButtonText => _language[LanguageKey.EmptyButton];
-    public string NoMatchTitleText => _language[LanguageKey.NoMatchTitle];
-    public string NoMatchSubtitleText => _language[LanguageKey.NoMatchSubtitle];
-    public string ThemeTooltip => _language[LanguageKey.TooltipTheme];
-    public string LanguageTooltip => _language[LanguageKey.TooltipLanguage];
-    public string LanguageLabel => _language.Label(Settings.Language);
+    /// <summary>Static labels, resolved through <see cref="HomeTexts"/>.</summary>
+    public HomeTexts Texts { get; }
 
-    // Card tooltips: resolved through the root DataContext so DataTemplate
-    // bindings can reach them via {Binding DataContext.X, ElementName=Root}.
-    public string TooltipEditText => _language[LanguageKey.TooltipEdit];
-    public string TooltipDeleteText => _language[LanguageKey.TooltipDelete];
-    public string TooltipMoveUpText => _language[LanguageKey.TooltipMoveUp];
-    public string TooltipMoveDownText => _language[LanguageKey.TooltipMoveDown];
+    public string LanguageLabel => _language.Label(Settings.Language);
 
     /// <summary>True only when the full (unfiltered) list is empty — matches
     /// legacy: the "no items yet" hint never shows for a search with no hits.</summary>
@@ -116,6 +97,7 @@ public sealed partial class HomeViewModel : ObservableObject
         _dialogs = dialogs;
         _language = language;
         _language.PropertyChanged += OnLanguageChanged;
+        Texts = new HomeTexts(language);
         Settings = settingsUseCase.Load();
         // The equal-value guard in OnConfirmEnabledChanged keeps this sync
         // side-effect free (no write during construction).
@@ -139,11 +121,10 @@ public sealed partial class HomeViewModel : ObservableObject
 
     private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Full refresh: every text property re-evaluates, and the item collection
-        // is rebuilt so card bindings (incl. the danger-reason tooltip converter)
-        // resolve against the new language.
+        // Item collection rebuilt so card bindings (incl. the danger-reason
+        // tooltip converter) resolve against the new language; static labels
+        // re-evaluate through Texts.
         RefreshItems();
-        OnPropertyChanged(string.Empty);
     }
 
     partial void OnStatusTextChanged(string value) => OnPropertyChanged(nameof(HasStatus));
@@ -205,6 +186,23 @@ public sealed partial class HomeViewModel : ObservableObject
         return !items.IsError && !settings.IsError;
     }
 
+    /// <summary>Applies a pure list mutation, persists, and refreshes; a save
+    /// failure keeps the error status in the bar and skips the success state.</summary>
+    private void MutateItems(Func<IReadOnlyList<LaunchItem>, IReadOnlyList<LaunchItem>> mutate, LanguageKey? successKey = null)
+    {
+        _all = mutate(_all).ToList();
+        if (!TrySave())
+        {
+            return;
+        }
+
+        RefreshItems();
+        if (successKey is not null)
+        {
+            StatusText = _language[successKey.Value];
+        }
+    }
+
     /// <summary>Position of an item reference in the full list (used by the edit flow).</summary>
     public int IndexOf(LaunchItem item) => _all.FindIndex(i => ReferenceEquals(i, item));
 
@@ -216,14 +214,9 @@ public sealed partial class HomeViewModel : ObservableObject
 
     public void ApplyEdit(LaunchItem edited, int? index)
     {
-        _all = ItemUseCase.Upsert(_all, edited, index).ToList();
-        if (!TrySave())
-        {
-            return;
-        }
-
-        RefreshItems();
-        StatusText = _language[index is null ? LanguageKey.StatusAdded : LanguageKey.StatusUpdated];
+        MutateItems(
+            items => ItemUseCase.Upsert(items, edited, index),
+            index is null ? LanguageKey.StatusAdded : LanguageKey.StatusUpdated);
     }
 
     /// <summary>Three-state cycle: system (follow OS) → dark → light → system.
@@ -251,12 +244,7 @@ public sealed partial class HomeViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ToggleSelectAll()
-    {
-        _all = ItemUseCase.ToggleSelectAll(_all).ToList();
-        TrySave();
-        RefreshItems();
-    }
+    private void ToggleSelectAll() => MutateItems(ItemUseCase.ToggleSelectAll);
 
     /// <summary>
     /// Applies the checkbox state captured at click time. Resolves by id (not
@@ -264,12 +252,8 @@ public sealed partial class HomeViewModel : ObservableObject
     /// instance, and target-state semantics make re-invocations idempotent.
     /// </summary>
     [RelayCommand]
-    private void SetSelect(SelectRequest request)
-    {
-        _all = ItemUseCase.SetSelectById(_all, request.Id, request.Target).ToList();
-        TrySave();
-        RefreshItems();
-    }
+    private void SetSelect(SelectRequest request) =>
+        MutateItems(items => ItemUseCase.SetSelectById(items, request.Id, request.Target));
 
     [RelayCommand]
     private void MoveUp(LaunchItem item) => MoveBy(item, -1);
@@ -285,9 +269,7 @@ public sealed partial class HomeViewModel : ObservableObject
             return;
         }
 
-        _all = ItemUseCase.Move(_all, index, delta).ToList();
-        TrySave();
-        RefreshItems();
+        MutateItems(items => ItemUseCase.Move(items, index, delta));
     }
 
     [RelayCommand]
@@ -299,10 +281,7 @@ public sealed partial class HomeViewModel : ObservableObject
             return;
         }
 
-        _all = ItemUseCase.Delete(_all, index).ToList();
-        TrySave();
-        RefreshItems();
-        StatusText = _language[LanguageKey.StatusDeleted];
+        MutateItems(items => ItemUseCase.Delete(items, index), LanguageKey.StatusDeleted);
     }
 
     public bool NeedsConfirm(LaunchItem item) => _launchUseCase.NeedsConfirm(Settings, item);

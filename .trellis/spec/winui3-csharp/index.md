@@ -35,7 +35,7 @@ launchpad/
 
 1. **`Application.RequestedTheme` 运行时不可变**（COMException 0x80131515）。主题切换必须在内容根元素上设 `FrameworkElement.RequestedTheme`。
 2. **命名空间冲突**：`Launchpad.Application` 与 `Microsoft.UI.Xaml.Application` 冲突（CS0118）。应用层命名空间用 `Launchpad.UseCases`。
-3. **DI 按具体类型解析会失败**：`GetRequiredService<ConcreteClass>()` 在只注册接口映射时不 work。Attach 类方法用 `(Concrete)_services.GetRequiredService<IInterface>()`。
+3. **DI 按具体类型解析会失败**：`GetRequiredService<ConcreteClass>()` 在只注册接口映射时不 work。需要窗口宿主（HWND / XamlRoot）的服务（DialogService、DirectoryPickerService）构造注入 `IWindowHandleProvider` / `IXamlRootProvider`——组合根持有 `WindowHost` 实例，`Activate` 后填充 `WindowHandle` 与 `XamlRootSource`（XamlRoot 在 layout 时才创建，provider 惰性求值）。禁止后置 Attach + 具体类型解析。
 4. **unpackaged 应用窗口句柄**：`WinRT.Interop.WindowNative.GetWindowHandle`；AppWindow 用 `Window.AppWindow` 属性（Windows App SDK 1.4+），不要手写 WindowId 互操作。
 5. **unpackaged FolderPicker** 必须 `WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd)`，否则抛异常。
 6. **Mica 是 Win11 专属**：Win10 用 `DesktopAcrylicBackdrop` 回退（`OperatingSystem.IsWindowsVersionAtLeast(10,0,22000)` 分支）。
@@ -64,8 +64,8 @@ launchpad/
 - **语言状态**：settings.json `language` 字段（`"auto"` / `"zh-CN"` / `"en-US"`，缺失默认 `"auto"`）。`auto` 跟随系统：`GlobalizationPreferences.Languages[0]` 以 `zh*` 前缀判定中文，其余回退英文（`Translations.FromSystemLanguage`）。
 - **三层优先级**：用户显式设置 > auto 跟随系统 > 英文兜底。顶栏语言按钮循环 auto → zh-CN → en-US。
 - **纯语言表**：`Core/Localization/Translations`（zh/en 两个字典 + `Resolve`/`Effective`/`T`/`Format` 纯函数）；键枚举 `LanguageKey`。新文案 = 新键 + 两语言值 + TranslationsTests 完整性断言自动覆盖。
-- **可翻译文案一律键引用**：XAML 绑定 ViewModel 文案属性（如 `NewButtonText`）或 `LanguageKeyTextConverter`（LanguageKey → 当前语言文案，经 `LanguageService.Instance`）；对话框（DialogService/EditDialog）显示时经注入的 LanguageService 翻译。
-- **热切换**：LanguageService 变更触发全量 `OnPropertyChanged(string.Empty)` + `RefreshItems()`（卡片重建使 converter 重新求值）。模态对话框在打开期间语言固定（语言按钮在主界面，模态下不可切换）。
+- **可翻译文案一律键引用**：XAML 绑定 `ViewModel.Texts` 文案属性（`HomeTexts`，如 `Texts.NewButtonText`；语言切换时 HomeTexts 订阅 LanguageService 重发通知）或 `LanguageKeyTextConverter`（LanguageKey → 当前语言文案，经 `LanguageService.Instance`）；对话框（DialogService/EditDialog）显示时经注入的 LanguageService 翻译。
+- **热切换**：LanguageService 变更触发 `HomeTexts` 通知重估静态文案 + `RefreshItems()`（卡片重建使 converter 重新求值）。模态对话框在打开期间语言固定（语言按钮在主界面，模态下不可切换）。
 - **领域层语义化**：`DangerousFlagDetector.DangerousReason`、`ItemValidator` 错误、`ConfigStore.LastRecoveryNoteKey` 均返回 `LanguageKey?`（不返回文案）。
 - **ErrorOr 错误描述保持英文内部诊断**（含路径/异常等技术细节，属诊断信息），状态栏前缀本地化（如"启动失败：{desc}"）。这是有意决策，不是遗漏。
 - 品牌名 "WT Launcher"（窗口标题、主页标题）不翻译。

@@ -12,7 +12,7 @@
 3. **自动更新**：Tauri updater（bundle createUpdaterArtifacts 已启用配置项，未接前端）；需 GitHub Release 流水线配合。
 4. **Mica/Acrylic 背景**：window-vibrancy 插件（Win11 Mica / Win10 Acrylic 回退）；性能实测（eframe 类透明窗口坑）。
 5. **CI 发布流水线**：GitHub Actions（windows-latest + Node + Rust 双链；Cargo.lock + package-lock.json 缓存键）；tag 触发 build + 双产物发布。
-6. **窗口状态的 Rust 侧接线**：当前前端 restoreWindow best-effort；改为 Rust 侧 window 事件（close → Restored 判定 → save_window_state）。
+6. **窗口状态的 Rust 侧接线**：~~当前前端 restoreWindow best-effort；改为 Rust 侧 window 事件（close → Restored 判定 → save_window_state）。~~ **已完成（2026-08-02）**：`src-tauri/src/lib.rs` on_window_event CloseRequested → `commands/misc.rs` save_window_state_impl。
 
 ## P3 候选
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Launchpad：Windows 原生启动器，用统一界面启动 AI CLI 工具（snow / codex / claude / opencode 等）。
 
-**技术栈状态（2026-08-01）**：R3 全图实施完成——新栈为 **Rust 核心 + Tauri 2.11 + React**（`launchpad-tauri/`，阶段 0-5 验收通过，质检自动化全 PASS，含便携 zip + MSI 双产物与双轨配置）。新栈规范/踩坑见 `.trellis/spec/tauri-rust-ts/index.md`；迁移决策链见 `archive/2026-08/08-01-migration-eval-rust-ts`。C# 主线（`launchpad/`，WinUI 3）保持可回滚，其行为断言是迁移对齐的契约。旧实现归档在 `archive/`（`launchpad-rs`、`launchpad_flutter`）。注意：安装实测（per-user 双产物）已于 8-01 完成；人工场景走查为下一迭代待办，干净环境安装实测为 R4 W3 工作项。
+**技术栈状态（2026-08-01）**：R3 全图实施完成——新栈为 **Rust 核心 + Tauri 2.11 + React**（`launchpad-tauri/`，阶段 0-5 验收通过，质检自动化全 PASS，含便携 zip + MSI 双产物与双轨配置）。新栈规范/踩坑见 `.trellis/spec/tauri-rust-ts/index.md`；迁移决策链见 `archive/2026-08/08-01-migration-eval-rust-ts`。C# 主线（`launchpad/`，WinUI 3）保持可回滚，其行为断言是迁移对齐的契约。旧实现归档在 `archive/`（`launchpad-rs`、`launchpad_flutter`）。注意：安装实测（per-user 双产物）已于 8-01 完成；人工场景走查为下一迭代待办，干净环境安装实测为 R4 W3 工作项。双栈退役条件与归档步骤见 R4 W4 决策（.trellis/tasks/08-03-r4-w4-retirement/retirement-criteria.md）。
 
 ### 验证状态矩阵（项目当前状态唯一真源，滞后检测见 AGENTS.md）
 

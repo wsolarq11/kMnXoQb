@@ -1,4 +1,4 @@
-# CI — WinUI 3 + C# (.NET 10, launchpad/)
+# CI — WinUI 3 + C# (.NET 10, launchpad/) — 新栈流水线见 ci-tauri.yml
 #
 # Windows 原生应用：单平台构建 + 测试。Rust/C++ 时代的多平台矩阵已随
 # 2026-07-31 WinUI 3 迁移移除。

@@ -1,0 +1,102 @@
+# CI — Tauri 2 + Rust/React (launchpad-tauri/)
+#
+# 新栈（R3 迁移产物）的回归护栏与可复现构建：cargo/vitest 全测 + release
+# 双产物（MSI + portable zip）。产物由 CI 构建（替代开发机构建），指纹
+# 门禁防 wix/identifier 本机路径与用户名泄漏回退（c6b21c8 脱敏的护栏）。
+# 与 ci.yml（WinUI 3 + C#）完全独立，并行运行。
+
+name: CI Tauri
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: test-and-bundle
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: launchpad-tauri
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: launchpad-tauri/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            launchpad-tauri/src-tauri/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('launchpad-tauri/src-tauri/Cargo.lock') }}
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Rust fmt
+        run: cargo fmt --check
+        working-directory: launchpad-tauri/src-tauri
+
+      - name: Rust clippy
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: launchpad-tauri/src-tauri
+
+      - name: Rust tests
+        run: cargo test
+        working-directory: launchpad-tauri/src-tauri
+
+      - name: Frontend tests
+        run: npm run test
+
+      - name: Build release + MSI
+        run: npm run tauri build -- --bundles msi
+
+      - name: Pack portable zip
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/pack-portable.ps1
+
+      # Dev-machine fingerprint gate: the MSI and the portable zip must not
+      # contain the developer's paths or username (wix/identifier 脱敏,
+      # commit c6b21c8). These patterns can never legitimately appear on a
+      # CI runner — a hit means the sanitization regressed.
+      - name: Fingerprint gate
+        shell: pwsh
+        run: |
+          $patterns = 'D:\\AI|Administrator|wsolarq11'
+          $bad = @()
+          $zip = Get-ChildItem release/*.zip -ErrorAction Stop
+          $stage = Join-Path $env:TEMP 'launchpad-fp-check'
+          if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+          Expand-Archive $zip $stage
+          Get-ChildItem $stage -Recurse -File | ForEach-Object {
+            $content = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
+            if ($content -and $content -match $patterns) { $bad += $_.FullName }
+          }
+          $msi = Get-ChildItem src-tauri/target/release/bundle/msi/*.msi -ErrorAction Stop
+          $text = [Text.Encoding]::Unicode.GetString([IO.File]::ReadAllBytes($msi.FullName))
+          if ($text -match $patterns) { $bad += $msi.FullName }
+          if ($bad.Count -gt 0) {
+            Write-Error ("Fingerprint leak detected: " + ($bad -join ', '))
+            exit 1
+          }
+          Write-Host "Fingerprint gate: clean"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: launchpad-release
+          path: |
+            launchpad-tauri/release/*.zip
+            launchpad-tauri/src-tauri/target/release/bundle/msi/*.msi

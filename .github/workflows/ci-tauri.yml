@@ -67,7 +67,9 @@ jobs:
 
       - name: Pack portable zip
         shell: pwsh
-        run: powershell -ExecutionPolicy Bypass -File scripts/pack-portable.ps1
+        # pwsh reads UTF-8 scripts natively; Windows PowerShell 5.1 decodes
+        # BOM-less UTF-8 as ANSI (breaks on non-ASCII, e.g. 437 code page).
+        run: pwsh -ExecutionPolicy Bypass -File scripts/pack-portable.ps1
 
       # Dev-machine fingerprint gate: the MSI and the portable zip must not
       # contain the developer's paths or username (wix/identifier 脱敏,

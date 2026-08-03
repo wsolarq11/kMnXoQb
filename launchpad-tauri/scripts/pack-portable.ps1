@@ -15,7 +15,7 @@ $ZipName = "Launchpad-$Version-Windows-Portable.zip"
 $StageDir = Join-Path $env:TEMP "launchpad-portable-stage"
 
 if (-not (Test-Path $Exe)) {
-    throw "Release exe not found at $Exe — run `tauri build --no-bundle` first."
+    throw "Release exe not found at $Exe - run 'tauri build --no-bundle' first."
 }
 
 if (Test-Path $StageDir) { Remove-Item $StageDir -Recurse -Force }
@@ -25,11 +25,11 @@ Copy-Item $Exe $StageDir
 # Portable marker: presence flips InstallForm to Portable.
 New-Item -ItemType File -Path (Join-Path $StageDir "launchpad.portable") | Out-Null
 Set-Content -Path (Join-Path $StageDir "README.txt") -Encoding UTF8 -Value @"
-Launchpad $Version — Portable edition
+Launchpad $Version - Portable edition
 =====================================
 Unzip anywhere. Run launchpad-tauri.exe.
 Config lives in a config/ folder next to the exe (or in the nearest ancestor
-that already has one) — the whole folder can be moved around freely.
+that already has one) - the whole folder can be moved around freely.
 
 Requirements: WebView2 Runtime (built into Windows 11; Windows 10 install from
 https://developer.microsoft.com/microsoft-edge/webview2)

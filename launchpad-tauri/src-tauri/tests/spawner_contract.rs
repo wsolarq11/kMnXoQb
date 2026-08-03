@@ -31,7 +31,11 @@ fn launch_starts_process_for_valid_plan() {
 #[test]
 fn launch_maps_missing_working_directory_to_error_directory() {
     let spawner = SystemProcessSpawner;
-    let plan = plan("pwsh.exe", vec![], r"D:\definitely-not-a-real-launchpad-dir-xyz");
+    let plan = plan(
+        "pwsh.exe",
+        vec![],
+        r"D:\definitely-not-a-real-launchpad-dir-xyz",
+    );
     match spawner.launch(&plan) {
         Err(SpawnError::Win32 { code }) => {
             assert_eq!(launchpad_tauri_lib::core::ports::ERROR_DIRECTORY, code);

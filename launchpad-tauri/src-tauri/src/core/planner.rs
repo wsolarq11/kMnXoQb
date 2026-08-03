@@ -85,7 +85,15 @@ mod tests {
         let plan = plan_windows(&default_item(), true, true);
         assert_eq!("wt.exe", plan.executable);
         assert_eq!(
-            vec!["new-tab", "-d", r"D:\projects\demo", "pwsh", "-NoExit", "-Command", "snow"],
+            vec![
+                "new-tab",
+                "-d",
+                r"D:\projects\demo",
+                "pwsh",
+                "-NoExit",
+                "-Command",
+                "snow"
+            ],
             plan.args
         );
         assert_eq!(r"D:\projects\demo", plan.working_directory);
@@ -126,7 +134,15 @@ mod tests {
 
     #[test]
     fn marks_dangerous_commands() {
-        let plan = plan_windows(&item("claude --dangerously-skip-permissions", r"D:\projects\demo", None), true, true);
+        let plan = plan_windows(
+            &item(
+                "claude --dangerously-skip-permissions",
+                r"D:\projects\demo",
+                None,
+            ),
+            true,
+            true,
+        );
         assert!(plan.is_dangerous);
     }
 
@@ -138,7 +154,10 @@ mod tests {
     #[test]
     fn pwsh_fallback_escapes_directory_with_single_quote() {
         let plan = plan_windows(&item("snow", r"D:\a'b", None), false, true);
-        assert_eq!(vec!["-NoExit", "-Command", "cd 'D:\\a''b'; snow"], plan.args);
+        assert_eq!(
+            vec!["-NoExit", "-Command", "cd 'D:\\a''b'; snow"],
+            plan.args
+        );
     }
 
     #[test]

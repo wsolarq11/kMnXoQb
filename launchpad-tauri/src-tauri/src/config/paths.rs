@@ -2,6 +2,7 @@
 //! - Portable: upward search from the exe for an ancestor containing config/
 //!   (mirrors C# ResolveConfigDir; keeps the directory movable).
 //! - Installed (MSI): <user app data dir>/launchpad/config.
+//!
 //! Both inputs (exe dir, appdata dir) are injected so the resolver is pure.
 
 use std::path::{Path, PathBuf};
@@ -60,7 +61,8 @@ mod tests {
     use super::*;
 
     fn scratch(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("launchpad-paths-{name}-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("launchpad-paths-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir

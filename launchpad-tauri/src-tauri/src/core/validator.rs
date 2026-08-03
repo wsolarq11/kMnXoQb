@@ -55,7 +55,10 @@ mod tests {
     fn command_required_when_blank() {
         for command in [None, Some(""), Some("  ")] {
             let r = validate(Some("snow"), command);
-            assert_eq!(Some(LanguageKey::ValidationCommandRequired), r.command_error);
+            assert_eq!(
+                Some(LanguageKey::ValidationCommandRequired),
+                r.command_error
+            );
             assert!(r.name_error.is_none());
         }
     }

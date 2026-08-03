@@ -229,7 +229,11 @@ mod tests {
 
     #[test]
     fn upsert_replaces_at_index() {
-        let r = upsert(&[item("a", "snow"), item("b", "snow")], item("c", "snow"), Some(1));
+        let r = upsert(
+            &[item("a", "snow"), item("b", "snow")],
+            item("c", "snow"),
+            Some(1),
+        );
         assert_eq!("c", r[1].name);
         assert_eq!(2, r.len());
     }

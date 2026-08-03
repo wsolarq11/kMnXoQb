@@ -62,7 +62,10 @@ pub struct WindowStateDto {
 /// Persists the current window geometry. Wired to the CloseRequested event in
 /// lib.rs (the restore-time clamp guards the -32000 minimized coordinates).
 #[tauri::command]
-pub fn save_window_state(state: State<'_, AppState>, window: tauri::WebviewWindow) -> Result<(), AppError> {
+pub fn save_window_state(
+    state: State<'_, AppState>,
+    window: tauri::WebviewWindow,
+) -> Result<(), AppError> {
     save_window_state_impl(&state, &window)
 }
 

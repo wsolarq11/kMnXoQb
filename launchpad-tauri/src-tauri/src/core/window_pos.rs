@@ -55,20 +55,42 @@ mod tests {
     const SCREEN_HEIGHT: i32 = 1080;
 
     fn state(x: i32, y: i32, width: u32, height: u32) -> WindowState {
-        WindowState { x, y, width, height }
+        WindowState {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     #[test]
     fn keeps_visible_state() {
         let s = state(100, 100, 900, 700);
-        assert_eq!(s, clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT, 100));
+        assert_eq!(
+            s,
+            clamp_to_visible(
+                &s,
+                SCREEN_LEFT,
+                SCREEN_TOP,
+                SCREEN_WIDTH,
+                SCREEN_HEIGHT,
+                100
+            )
+        );
     }
 
     #[test]
     fn resets_minimized_offscreen_coordinates() {
         // -32000 is the classic minimized-window coordinate (current bad state).
         let s = state(-32000, -32000, 237, 39);
-        let r = clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT, 100);
+        let r = clamp_to_visible(
+            &s,
+            SCREEN_LEFT,
+            SCREEN_TOP,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            100,
+        );
         assert_eq!(100, r.x);
         assert_eq!(100, r.y);
         assert_eq!(DEFAULT_WIDTH, r.width);
@@ -78,7 +100,14 @@ mod tests {
     #[test]
     fn resets_fully_offscreen_right() {
         let s = state(2000, 100, 900, 700);
-        let r = clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT, 100);
+        let r = clamp_to_visible(
+            &s,
+            SCREEN_LEFT,
+            SCREEN_TOP,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            100,
+        );
         assert_eq!(DEFAULT_WIDTH, r.width);
         assert_eq!(100, r.x);
     }
@@ -86,7 +115,14 @@ mod tests {
     #[test]
     fn resets_tiny_size() {
         let s = state(50, 50, 10, 10);
-        let r = clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT, 100);
+        let r = clamp_to_visible(
+            &s,
+            SCREEN_LEFT,
+            SCREEN_TOP,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            100,
+        );
         assert_eq!(DEFAULT_WIDTH, r.width);
         assert_eq!(DEFAULT_HEIGHT, r.height);
     }
@@ -95,7 +131,10 @@ mod tests {
     fn keeps_window_spanning_two_screens() {
         // Dual screen: virtual 0-3840, window straddles the seam (overlap 800px).
         let s = state(1900, 100, 800, 600);
-        assert_eq!(s, clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, 3840, SCREEN_HEIGHT, 100));
+        assert_eq!(
+            s,
+            clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, 3840, SCREEN_HEIGHT, 100)
+        );
     }
 
     #[test]
@@ -109,7 +148,14 @@ mod tests {
     #[test]
     fn zero_size_falls_back_to_defaults() {
         let s = state(100, 100, 0, 0);
-        let r = clamp_to_visible(&s, SCREEN_LEFT, SCREEN_TOP, SCREEN_WIDTH, SCREEN_HEIGHT, 100);
+        let r = clamp_to_visible(
+            &s,
+            SCREEN_LEFT,
+            SCREEN_TOP,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            100,
+        );
         assert_eq!(DEFAULT_WIDTH, r.width);
         assert_eq!(DEFAULT_HEIGHT, r.height);
     }

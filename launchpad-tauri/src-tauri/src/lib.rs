@@ -21,7 +21,11 @@ fn webview2_available() -> bool {
     }
     // A version subdirectory (e.g. 150.0.4078.105) proves a real install.
     std::fs::read_dir(root)
-        .map(|entries| entries.flatten().any(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false)))
+        .map(|entries| {
+            entries
+                .flatten()
+                .any(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+        })
         .unwrap_or(false)
 }
 

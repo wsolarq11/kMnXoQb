@@ -22,9 +22,15 @@ mod tests {
     #[test]
     fn system_locale_is_a_nonempty_tag() {
         let lang = first_system_language();
-        assert!(lang.is_some(), "GetUserDefaultLocaleName should always return a locale");
+        assert!(
+            lang.is_some(),
+            "GetUserDefaultLocaleName should always return a locale"
+        );
         let lang = lang.unwrap();
         assert!(!lang.is_empty());
-        assert!(lang.contains('-'), "locale tags look like zh-CN, got {lang}");
+        assert!(
+            lang.contains('-'),
+            "locale tags look like zh-CN, got {lang}"
+        );
     }
 }

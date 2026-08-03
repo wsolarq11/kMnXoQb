@@ -90,7 +90,10 @@ mod tests {
         let payload = service.load_items();
         assert!(payload.error.is_none());
         assert_eq!(1, payload.items.len());
-        assert_eq!(Some(crate::core::i18n::LanguageKey::StatusRecovered), payload.recovery_note);
+        assert_eq!(
+            Some(crate::core::i18n::LanguageKey::StatusRecovered),
+            payload.recovery_note
+        );
     }
 
     #[test]

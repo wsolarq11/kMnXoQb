@@ -58,7 +58,7 @@ mod tests {
     fn set_theme_replaces_value() {
         let s = set_theme(&AppSettings::default(), "dark");
         assert_eq!("dark", s.theme);
-        assert_eq!(false, s.confirm_enabled);
+        assert!(!s.confirm_enabled);
     }
 
     #[test]

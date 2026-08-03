@@ -13,7 +13,14 @@ use std::time::Duration;
 use launchpad_tauri_lib::core::models::LaunchItem;
 use launchpad_tauri_lib::core::planner::{escape_pwsh_quotes, plan_windows};
 
-const DIR_CASES: &[&str] = &["plain", "with space", "with'quote", "with;semicolon", "with&and", "中文目录"];
+const DIR_CASES: &[&str] = &[
+    "plain",
+    "with space",
+    "with'quote",
+    "with;semicolon",
+    "with&and",
+    "中文目录",
+];
 const MARKER: &str = "CONTRACT_MARKER";
 
 fn scratch() -> PathBuf {

@@ -15,9 +15,7 @@ pub const DANGEROUS_FLAGS: &[(&str, LanguageKey)] = &[
 
 pub fn is_dangerous(command: &str) -> bool {
     let lower = command.to_ascii_lowercase();
-    DANGEROUS_FLAGS
-        .iter()
-        .any(|(flag, _)| lower.contains(flag))
+    DANGEROUS_FLAGS.iter().any(|(flag, _)| lower.contains(flag))
 }
 
 /// Explicit loop, not find().map(): the first matching flag wins and safe

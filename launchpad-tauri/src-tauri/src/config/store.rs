@@ -70,10 +70,8 @@ impl ConfigStore {
             Ok(recovered) => {
                 // File-level copy: recovery must NOT go through the write path
                 // (it would overwrite the backup with the corrupt file).
-                std::fs::copy(&backup_path, path).map_err(|e| {
-                    AppError::StoreWrite {
-                        detail: format!("recovery copy failed: {e}"),
-                    }
+                std::fs::copy(&backup_path, path).map_err(|e| AppError::StoreWrite {
+                    detail: format!("recovery copy failed: {e}"),
                 })?;
                 *self.last_recovery_note.lock().unwrap() = Some(LanguageKey::StatusRecovered);
                 Ok(recovered)

@@ -108,7 +108,11 @@ fn needs_confirm_flags_dangerous_command() {
     let (state, _) = test_state();
     let item = commands::items::create_item_impl(
         &state,
-        input("codex", r"D:\x", "codex --dangerously-bypass-approvals-and-sandbox"),
+        input(
+            "codex",
+            r"D:\x",
+            "codex --dangerously-bypass-approvals-and-sandbox",
+        ),
     )
     .expect("create");
     commands::items::set_select_impl(&state, item.id.clone(), true).expect("select");
@@ -139,7 +143,9 @@ fn launch_item_missing_directory_returns_structured_error_without_history() {
 
     let err = commands::launch::launch_item_impl(&state, item.id).expect_err("should fail");
     assert_eq!("Launch.WorkingDirectoryMissing", err.kind());
-    assert!(err.description().contains("launchpad-definitely-missing-cmd-flow"));
+    assert!(err
+        .description()
+        .contains("launchpad-definitely-missing-cmd-flow"));
 
     // History must NOT contain the failed item (success-only semantics).
     let settings = commands::settings::get_settings_impl(&state).expect("settings");

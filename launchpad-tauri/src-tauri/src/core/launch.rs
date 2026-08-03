@@ -12,11 +12,11 @@ pub fn needs_confirm(settings: &AppSettings, item: &LaunchItem) -> bool {
 }
 
 /// Items that must be confirmed before launching (confirm on, or dangerous).
-pub fn require_confirm<'a>(
-    settings: &AppSettings,
-    items: &'a [LaunchItem],
-) -> Vec<&'a LaunchItem> {
-    items.iter().filter(|i| needs_confirm(settings, i)).collect()
+pub fn require_confirm<'a>(settings: &AppSettings, items: &'a [LaunchItem]) -> Vec<&'a LaunchItem> {
+    items
+        .iter()
+        .filter(|i| needs_confirm(settings, i))
+        .collect()
 }
 
 /// Prepend to launch history, capped at max entries. Duplicates of the name
@@ -60,7 +60,12 @@ impl<S: ProcessSpawner, D: TerminalAvailability> LaunchService<S, D> {
     ) -> Result<(), AppError> {
         let plan = self.plan(item);
         self.spawner.launch(&plan).map_err(|e| {
-            classify_spawn_error(&e, &plan.executable, &plan.working_directory, dir_exists(&plan.working_directory))
+            classify_spawn_error(
+                &e,
+                &plan.executable,
+                &plan.working_directory,
+                dir_exists(&plan.working_directory),
+            )
         })
     }
 
@@ -118,7 +123,10 @@ mod tests {
         }
     }
 
-    fn use_case(spawner: impl ProcessSpawner + 'static, available: &[&str]) -> LaunchService<impl ProcessSpawner, FakeDetector> {
+    fn use_case(
+        spawner: impl ProcessSpawner + 'static,
+        available: &[&str],
+    ) -> LaunchService<impl ProcessSpawner, FakeDetector> {
         let available: Vec<String> = available.iter().map(|s| s.to_string()).collect();
         LaunchService::new(spawner, FakeDetector(available))
     }
@@ -137,7 +145,10 @@ mod tests {
     fn needs_confirm_false_when_global_off() {
         let settings = AppSettings::default();
         assert!(!needs_confirm(&settings, &item("a", "snow", true)));
-        assert!(!needs_confirm(&settings, &item("b", "claude --yolo", false)));
+        assert!(!needs_confirm(
+            &settings,
+            &item("b", "claude --yolo", false)
+        ));
     }
 
     #[test]
@@ -188,15 +199,23 @@ mod tests {
 
     #[test]
     fn try_launch_returns_structured_error_on_spawn_failure() {
-        let uc = LaunchService::new(OtherThrowingSpawner, FakeDetector(vec!["wt.exe".to_string()]));
-        let err = uc.try_launch(&item("a", "snow", false), |_| true).unwrap_err();
+        let uc = LaunchService::new(
+            OtherThrowingSpawner,
+            FakeDetector(vec!["wt.exe".to_string()]),
+        );
+        let err = uc
+            .try_launch(&item("a", "snow", false), |_| true)
+            .unwrap_err();
         assert!(err.description().contains("invalid directory"));
         assert_eq!("Launch.Unknown", err.kind());
     }
 
     #[test]
     fn try_launch_path_not_found_with_existing_working_dir_reports_executable() {
-        let uc = LaunchService::new(Win32ThrowingSpawner(ERROR_PATH_NOT_FOUND), FakeDetector(vec!["wt.exe".to_string()]));
+        let uc = LaunchService::new(
+            Win32ThrowingSpawner(ERROR_PATH_NOT_FOUND),
+            FakeDetector(vec!["wt.exe".to_string()]),
+        );
         let err = uc
             .try_launch(&item("a", "snow", false), |_| true)
             .unwrap_err();
@@ -205,7 +224,10 @@ mod tests {
 
     #[test]
     fn try_launch_path_not_found_with_missing_working_dir_reports_working_directory() {
-        let uc = LaunchService::new(Win32ThrowingSpawner(ERROR_PATH_NOT_FOUND), FakeDetector(vec!["wt.exe".to_string()]));
+        let uc = LaunchService::new(
+            Win32ThrowingSpawner(ERROR_PATH_NOT_FOUND),
+            FakeDetector(vec!["wt.exe".to_string()]),
+        );
         let err = uc
             .try_launch(&item("a", "snow", false), |_| false)
             .unwrap_err();

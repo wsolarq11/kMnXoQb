@@ -32,7 +32,7 @@ list_items / create_item / update_item / delete_item / move_item / set_select / 
 9. **配置目录语义**：`ResolveConfigDir` 返回祖先的 `config/` **子目录**（不是祖先本身）；fallback `<exe>/config`——与 C# 一致，写错会导致 config.json 散落仓库根。
 10. **dialog 插件 pick_folder 是回调式**：用 `blocking_pick_folder()`（命令线程池执行，不阻塞 webview 线程）。
 11. **Tauri 默认 MSI 模板是 perMachine + ProgramFilesFolder**（安装需提权、目录不可写）：per-user 需自定义 wix 模板（`src-tauri/wix/per-user-main.wxs`）：`InstallScope="perUser"` + `InstallPrivileges="limited"` + INSTALLDIR 放 `LocalAppDataFolder\Programs`；**组件 KeyPath 必须是 HKCU 注册表键**（ICE38：用户 profile 组件不允许文件 KeyPath）；用户 profile 目录需 RemoveFile 条目（ICE64）。
-12. **自定义 wix 模板必须保留默认模板的 Feature 结构与 WixUI 引用**：组件不在任何 Feature 会 ICE21 失败；WixUI 依赖 tauri 的 light `-ext WixUIExtension`（自动带）。生成方法：默认模板构建一次 → 取渲染后的 `target/release/wix/x64/main.wxs` 作基底 → 改 per-user 三处（脚本 `patch_wix.py` 已归档，tauri 升级后重新生成）。
+12. **自定义 wix 模板必须保留默认模板的 Feature 结构与 WixUI 引用**：组件不在任何 Feature 会 ICE21 失败；WixUI 依赖 tauri 的 light `-ext WixUIExtension`（自动带）。现做法：`src-tauri/wix/per-user-main.wxs` 直接用 tauri handlebars 变量（`{{main_binary_path}}` / `{{icon_path}}`）与 candle 变量（`$(var.Win64)`），随 `tauri build` 直接渲染，不再依赖"渲染后拷贝再修改"。`patch_wix.py` 仍在 `src-tauri/`，但仅作历史生成参考（其匹配的默认渲染输出结构已过时，勿再按其流程重新生成）。
 13. **WiX light 的 `-cultures` 参数**：本环境用冒号语法（`-cultures:en-US`）；空格语法会把文化名当输入文件（"cannot find the file 'en-US' with type 'Source'"）。tauri CLI 内部用冒号，无碍。
 14. **MSI 静默安装要在 PowerShell 里跑**：Git Bash 会把 `/i` `/qn` 当路径转换导致 msiexec 挂起。
 

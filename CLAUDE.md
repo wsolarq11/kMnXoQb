@@ -6,7 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Launchpad：Windows 原生启动器，用统一界面启动 AI CLI 工具（snow / codex / claude / opencode 等）。
 
-**技术栈状态（2026-08-01）**：R3 全图实施完成——新栈为 **Rust 核心 + Tauri 2.11 + React**（`launchpad-tauri/`，阶段 0-5 验收通过，质检自动化全 PASS，含便携 zip + MSI 双产物与双轨配置）。新栈规范/踩坑见 `.trellis/spec/tauri-rust-ts/index.md`；迁移决策链见 `archive/2026-08/08-01-migration-eval-rust-ts`。C# 主线（`launchpad/`，WinUI 3）保持可回滚，其行为断言是迁移对齐的契约；人工场景走查与安装实测为下一迭代项。旧实现归档在 `archive/`（`launchpad-rs`、`launchpad_flutter`）。
+**技术栈状态（2026-08-01）**：R3 全图实施完成——新栈为 **Rust 核心 + Tauri 2.11 + React**（`launchpad-tauri/`，阶段 0-5 验收通过，质检自动化全 PASS，含便携 zip + MSI 双产物与双轨配置）。新栈规范/踩坑见 `.trellis/spec/tauri-rust-ts/index.md`；迁移决策链见 `archive/2026-08/08-01-migration-eval-rust-ts`。C# 主线（`launchpad/`，WinUI 3）保持可回滚，其行为断言是迁移对齐的契约。旧实现归档在 `archive/`（`launchpad-rs`、`launchpad_flutter`）。注意：安装实测（per-user 双产物）已于 8-01 完成；人工场景走查为下一迭代待办，干净环境安装实测为 R4 W3 工作项。
+
+### 验证状态矩阵（项目当前状态唯一真源，滞后检测见 AGENTS.md）
+
+| 工作项 | 状态 | 证据 | 更新日期 |
+|---|---|---|---|
+| W2 新栈 CI 门禁（launchpad-tauri） | 已完成 | `.github/workflows/ci-tauri.yml` 全绿（run 30820279223 success）；本地 cargo 125 例 + vitest 35 例全绿 | 2026-08-03 |
+| W1 人工场景走查 | 未开始 | — | 2026-08-03 |
+| W3 干净环境安装实测 | 未开始（依赖 W2 artifact） | — | 2026-08-03 |
+| W4 双栈退役条件决策 | 未开始（依赖 W1+W3） | — | 2026-08-03 |
+| W5 状态真源与文档同步 | 进行中（本任务） | 本矩阵 + commit-msg hook + AGENTS.md 约定 | 2026-08-03 |
 
 ## 常用命令（均在 `launchpad/` 目录下执行）
 

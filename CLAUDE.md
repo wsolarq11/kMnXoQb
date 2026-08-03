@@ -13,10 +13,10 @@ Launchpad：Windows 原生启动器，用统一界面启动 AI CLI 工具（snow
 | 工作项 | 状态 | 证据 | 更新日期 |
 |---|---|---|---|
 | W2 新栈 CI 门禁（launchpad-tauri） | 已完成 | `.github/workflows/ci-tauri.yml` 全绿（run 30820279223 success）；本地 cargo 125 例 + vitest 35 例全绿 | 2026-08-03 |
-| W1 人工场景走查 | 未开始 | — | 2026-08-03 |
-| W3 干净环境安装实测 | 未开始（依赖 W2 artifact） | — | 2026-08-03 |
-| W4 双栈退役条件决策 | 未开始（依赖 W1+W3） | — | 2026-08-03 |
-| W5 状态真源与文档同步 | 进行中（本任务） | 本矩阵 + commit-msg hook + AGENTS.md 约定 | 2026-08-03 |
+| W1 人工场景走查 | 未开始（清单已就绪） | `08-03-r4-w1-walkthrough/walkthrough.md`（14 场景） | 2026-08-03 |
+| W3 干净环境安装实测 | 进行中（zip/便携双轨 PASS，MSI 部分待用户） | `08-03-r4-w3-install-validation/install-form-validation.md`（CI artifact 三件套 + 便携双轨正负对照验证） | 2026-08-03 |
+| W4 双栈退役条件决策 | 已完成 | `archive/2026-08/08-03-r4-w4-retirement/retirement-criteria.md`（触发条件/归档步骤/处置，提交 f334124） | 2026-08-03 |
+| W5 状态真源与文档同步 | 已完成 | 本矩阵 + commit-msg hook（提交 e70254c，无前缀拒绝/带前缀通过实测） | 2026-08-03 |
 
 ## 常用命令（均在 `launchpad/` 目录下执行）
 

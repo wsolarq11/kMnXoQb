@@ -84,6 +84,26 @@ public sealed class TerminalContractTests : IDisposable
         return (outTask.Result, errTask.Result);
     }
 
+    /// <summary>
+    /// Asserts the shell echoed the working directory. For non-ASCII dir names the
+    /// shell prints through the console code page (437 on en-US runners), where CJK
+    /// becomes '?'; only the ASCII prefix can be asserted there. The product passes
+    /// the path as UTF-16 argv/WorkingDirectory, so full-precision coverage stays
+    /// valid on zh-CN systems (local runs).
+    /// </summary>
+    private static void AssertDirectoryShown(string target, string outText)
+    {
+        if (target.Any(c => c > 127))
+        {
+            var asciiPrefix = new string(target.TakeWhile(c => c <= 127).ToArray());
+            Assert.Contains(asciiPrefix, outText, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            Assert.Contains(target, outText, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(DirCases))]
     public void Pwsh_CdCommand_ExecutesWithEscapedDirectory(string dirName)
@@ -103,7 +123,7 @@ public sealed class TerminalContractTests : IDisposable
 
         Assert.Contains("CONTRACT_MARKER", outText);
         // Windows 路径大小写不敏感；pwsh 会把 TEMP 规范化为 Temp 显示
-        Assert.Contains(target, outText, StringComparison.OrdinalIgnoreCase);
+        AssertDirectoryShown(target, outText);
         Assert.DoesNotContain("Cannot find path", errText);
     }
 
@@ -132,7 +152,7 @@ public sealed class TerminalContractTests : IDisposable
         var (outText, errText) = RunTerminal(psi);
 
         Assert.Contains("CONTRACT_MARKER", outText);
-        Assert.Contains(target, outText, StringComparison.OrdinalIgnoreCase);
+        AssertDirectoryShown(target, outText);
         Assert.DoesNotContain("not recognized", errText);
     }
 

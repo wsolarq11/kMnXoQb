@@ -63,9 +63,7 @@ jobs:
         run: npm run test
 
       - name: Build release + MSI
-        # --verbose surfaces the bundler log (incl. WiX candle/light stderr),
-        # which tauri swallows on failure — keep while diagnosing CI light.exe.
-        run: npm run tauri build -- --bundles msi --verbose
+        run: npm run tauri build -- --bundles msi
 
       - name: Pack portable zip
         shell: pwsh

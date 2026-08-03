@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Path $StageDir | Out-Null
 Copy-Item $Exe $StageDir
 # Portable marker: presence flips InstallForm to Portable.
 New-Item -ItemType File -Path (Join-Path $StageDir "launchpad.portable") | Out-Null
-Set-Content -Path (Join-Path $StageDir "README.txt") -Value @"
+Set-Content -Path (Join-Path $StageDir "README.txt") -Encoding UTF8 -Value @"
 Launchpad $Version — Portable edition
 =====================================
 Unzip anywhere. Run launchpad-tauri.exe.

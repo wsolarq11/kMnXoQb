@@ -47,7 +47,7 @@
         <Media Id="1" Cabinet="app.cab" EmbedCab="yes" />
 
 
-        <Icon Id="ProductIcon" SourceFile="resources/icon.ico"/>
+        <Icon Id="ProductIcon" SourceFile="{{icon_path}}"/>
         <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
         <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />      <!-- Remove repair -->
         <SetProperty Id="ARPNOMODIFY" Value="1" After="InstallValidate" Sequence="execute"/>
@@ -124,10 +124,10 @@
                 <!-- Change the Root to HKCU for perUser installations -->
 </Component>
             <Component Id="Path" Guid="8d90192b-1613-5adf-8617-72894d2670ed" Win64="$(var.Win64)">
-                <File Id="Path" Source="launchpad-tauri.exe" KeyPath="no" Checksum="yes"/>
+                <File Id="Path" Source="{{main_binary_path}}" KeyPath="no" Checksum="yes"/>
 <RegistryValue Root="HKCU" Key="Software\Launchpad\launchpad-tauri" Name="PathComponent" Type="integer" Value="1" KeyPath="yes" />
             </Component>
-            <Component Id="I6559177a34264e2786ca57a022fe301e" Guid="e3a6ae55-9c23-4ed2-a45c-3d75b61f039c" Win64="$(var.Win64)" KeyPath="no"><File Id="PathFile_I6559177a34264e2786ca57a022fe301e" Source="launchpad_tauri_lib.dll" /><RegistryValue Root="HKCU" Key="Software\Launchpad\launchpad-tauri" Name="LibComponent" Type="integer" Value="1" KeyPath="yes" /></Component>
+            <Component Id="I6559177a34264e2786ca57a022fe301e" Guid="e3a6ae55-9c23-4ed2-a45c-3d75b61f039c" Win64="$(var.Win64)" KeyPath="no"><File Id="PathFile_I6559177a34264e2786ca57a022fe301e" Source="$(var.SourceDir)\..\launchpad_tauri_lib.dll" /><RegistryValue Root="HKCU" Key="Software\Launchpad\launchpad-tauri" Name="LibComponent" Type="integer" Value="1" KeyPath="yes" /></Component>
             <Component Id="CMP_UninstallShortcut" Guid="*">
 
                 <Shortcut Id="UninstallShortcut"

@@ -57,7 +57,16 @@ jobs:
           }
 
       - name: Audit vulnerable packages
-        run: dotnet list package --vulnerable --include-transitive || echo "::warning::Vulnerable or unlisted packages detected; review above output"
+        shell: pwsh
+        # GitHub Actions sets $PSNativeCommandUseErrorActionPreference=$true, so a
+        # failing native command throws instead of letting `||` fall through; use
+        # try/catch and pin the csproj (the repo has no .sln at launchpad/).
+        run: |
+          try {
+            dotnet list src/launchpad/launchpad.csproj package --vulnerable --include-transitive
+          } catch {
+            Write-Host "::warning::Vulnerable or unlisted packages detected; review above output"
+          }
 
       - name: Build (Release)
         run: dotnet build src/launchpad/launchpad.csproj --configuration Release --no-restore

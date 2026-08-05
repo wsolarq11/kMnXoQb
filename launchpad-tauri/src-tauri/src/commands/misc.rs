@@ -35,6 +35,13 @@ pub fn get_language_impl(state: &AppState) -> Result<ResolvedLanguage, AppError>
 
 /// Native folder picker (IFileDialog via the dialog plugin). Runs on the
 /// command thread pool; the blocking call never blocks the webview thread.
+/// Which window material this OS can render ("mica" | "acrylic" | "none").
+/// The frontend flips its translucent-chrome class from the answer.
+#[tauri::command]
+pub fn window_material() -> &'static str {
+    crate::infra::effects::material_state()
+}
+
 #[tauri::command]
 pub fn pick_directory(app: tauri::AppHandle) -> Result<Option<String>, AppError> {
     use tauri_plugin_dialog::{DialogExt, FilePath};

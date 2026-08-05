@@ -73,9 +73,15 @@ pub fn run() {
                 .ok_or("main window missing")?;
             let app_handle = app.handle().clone();
 
+            // Apply the window material (Mica/Acrylic) for the persisted
+            // theme; failures degrade silently to the opaque background.
+            let state = app.state::<AppState>();
+            if let Ok(settings) = state.settings.load() {
+                infra::effects::apply_window_material(&window, &settings.theme);
+            }
+
             // Restore the persisted geometry at startup (already clamped by
             // WindowPosition inside load_window_state_impl).
-            let state = app.state::<AppState>();
             if let Ok(Some(ws)) = commands::misc::load_window_state_impl(&state, &window) {
                 let _ = window.set_position(tauri::PhysicalPosition::new(ws.x, ws.y));
                 let _ = window.set_size(tauri::PhysicalSize::new(ws.width, ws.height));
@@ -112,6 +118,7 @@ pub fn run() {
             commands::misc::pick_directory,
             commands::misc::save_window_state,
             commands::misc::load_window_state,
+            commands::misc::window_material,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

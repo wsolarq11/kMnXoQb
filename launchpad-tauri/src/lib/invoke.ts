@@ -57,6 +57,7 @@ export const setConfirmEnabled = (enabled: boolean) =>
 
 // ---- misc ----
 export const getLanguage = () => rawInvoke<ResolvedLanguage>("get_language");
+export const windowMaterial = () => rawInvoke<"mica" | "acrylic" | "none">("window_material");
 export const pickDirectory = () => rawInvoke<string | null>("pick_directory");
 export const saveWindowState = () => rawInvoke<void>("save_window_state");
 export const loadWindowState = () =>

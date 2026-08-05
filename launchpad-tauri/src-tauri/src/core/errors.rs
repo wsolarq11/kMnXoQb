@@ -61,16 +61,16 @@ pub fn classify_spawn_error(
     dir_exists: bool,
 ) -> AppError {
     match error {
-        SpawnError::Win32 { code } if *code == crate::core::ports::ERROR_FILE_NOT_FOUND => {
-            AppError::ProcessNotFound(executable.to_string())
-        }
         SpawnError::Win32 { code }
-            if *code == crate::core::ports::ERROR_PATH_NOT_FOUND
+            if *code == crate::core::ports::ERROR_FILE_NOT_FOUND
+                || *code == crate::core::ports::ERROR_PATH_NOT_FOUND
                 || *code == crate::core::ports::ERROR_DIRECTORY =>
         {
-            // ERROR_PATH_NOT_FOUND also fires when the executable lookup walks
-            // a broken PATH entry; only blame the working directory when it is
-            // actually missing.
+            // ERROR_FILE_NOT_FOUND also surfaces when Rust std collapses a
+            // missing-executable lookup into "program not found" (no Win32
+            // code); ERROR_PATH_NOT_FOUND fires when the lookup walks a
+            // broken PATH entry. In every case only blame the working
+            // directory when it is actually missing.
             if dir_exists {
                 AppError::ProcessNotFound(executable.to_string())
             } else {

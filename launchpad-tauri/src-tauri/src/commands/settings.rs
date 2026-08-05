@@ -21,8 +21,15 @@ pub fn get_settings_impl(state: &AppState) -> Result<AppSettings, AppError> {
 
 /// Three-state cycle: system → dark → light → system.
 #[tauri::command]
-pub fn toggle_theme(state: State<'_, AppState>) -> Result<AppSettings, AppError> {
-    toggle_theme_impl(&state)
+pub fn toggle_theme(
+    state: State<'_, AppState>,
+    window: tauri::WebviewWindow,
+) -> Result<AppSettings, AppError> {
+    let updated = toggle_theme_impl(&state)?;
+    // Keep the window material (MicaDark/MicaLight/Acrylic) in sync with the
+    // theme the UI just switched to.
+    crate::infra::effects::apply_window_material(&window, &updated.theme);
+    Ok(updated)
 }
 
 pub fn toggle_theme_impl(state: &AppState) -> Result<AppSettings, AppError> {

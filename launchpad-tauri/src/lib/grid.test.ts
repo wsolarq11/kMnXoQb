@@ -1,50 +1,45 @@
 import { describe, expect, it } from "vitest";
-import { planGrid } from "./grid";
-
-const opts = { gap: 10, minWidth: 240, minHeight: 96 };
+import { CARD_HEIGHT, CARD_WIDTH, DEFAULT_GAP, planGrid } from "./grid";
 
 describe("planGrid", () => {
-  it("single card fills the grid in one column", () => {
-    expect(planGrid(800, 600, 1, opts)).toEqual({ columns: 1, scroll: false });
-  });
-
   it("empty count yields zero columns (empty state)", () => {
-    expect(planGrid(800, 600, 0, opts)).toEqual({ columns: 0, scroll: false });
+    expect(planGrid(800, 0)).toBe(0);
   });
 
-  it("picks the column count whose card ratio is closest to PHI", () => {
-    // W=1200 H=700 count=10: c=4 (ratio 1.29, score 0.33) beats c=3 (2.35),
-    // c=2 (4.5), c=1 (19.7); c>=5 drops below minWidth.
-    expect(planGrid(1200, 700, 10, opts)).toEqual({ columns: 4, scroll: false });
+  it("one card keeps the fixed card width (no stretch)", () => {
+    // 800px fits 3 columns; a single card stays 260px wide, not full-width.
+    expect(planGrid(800, 1)).toBe(3);
   });
 
-  it("prefers more columns on wider windows", () => {
-    // W=1600 H=700 count=12: c=4 (ratio 1.73, score 0.11) beats c=5 (1.38) and c=3.
-    expect(planGrid(1600, 700, 12, opts)).toEqual({ columns: 4, scroll: false });
+  it("single card in a narrow window gets one column", () => {
+    expect(planGrid(280, 1)).toBe(1);
   });
 
-  it("respects a custom phi target", () => {
-    // phi=1.4: c=5 (ratio 1.38, score 0.02) beats c=4 (1.73, score 0.33).
-    expect(planGrid(1600, 700, 12, { ...opts, phi: 1.4 })).toEqual({ columns: 5, scroll: false });
+  it("computes columns from fixed card width", () => {
+    // (1200 + 10) / 270 = 4.48 -> 4 columns.
+    expect(planGrid(1200, 10)).toBe(4);
   });
 
-  it("falls back to scrolling when cards get too short for the row count", () => {
-    // W=520 H=200 count=6: every c fails minHeight (c=1 h=25, c=2 h=60) or minWidth.
-    expect(planGrid(520, 200, 6, opts)).toEqual({ columns: 2, scroll: true });
+  it("uses the last column that still fits a full card", () => {
+    // (809 + 10) / 270 = 3.03 -> 3; (810 + 10) / 270 = 3.04 -> 3.
+    expect(planGrid(810, 8)).toBe(3);
+    // (1349 + 10) / 270 = 5.03 -> 5 columns.
+    expect(planGrid(1349, 8)).toBe(5);
   });
 
-  it("falls back to one column when the window is narrower than minWidth", () => {
-    expect(planGrid(200, 600, 3, opts)).toEqual({ columns: 1, scroll: true });
+  it("falls back to one column when the window is narrower than a card", () => {
+    expect(planGrid(200, 3)).toBe(1);
   });
 
-  it("stays non-scrolling when a column count just meets minWidth", () => {
-    // c=1 gives cardW 250 >= 240, ratio 1.5625 (score 0.0555).
-    expect(planGrid(250, 500, 3, opts)).toEqual({ columns: 1, scroll: false });
+  it("card size stays constant regardless of item count", () => {
+    // Same width -> same columns, independent of how many items exist.
+    expect(planGrid(1200, 2)).toBe(planGrid(1200, 50));
   });
 
-  it("scroll fallback keeps as many minWidth columns as fit", () => {
-    // W=520 H=500 count=10: c=1 h=41 and c=2 h=92 both fail minHeight,
-    // c>=3 fails minWidth; scroll kicks in with floor((520+10)/250) = 2 columns.
-    expect(planGrid(520, 500, 10, opts)).toEqual({ columns: 2, scroll: true });
+  it("exported card constants match the CSS grid", () => {
+    // Grid gap is the CSS 10px gap; CARD_HEIGHT mirrors App.css grid-auto-rows.
+    expect(DEFAULT_GAP).toBe(10);
+    expect(CARD_WIDTH).toBe(260);
+    expect(CARD_HEIGHT).toBe(120);
   });
 });

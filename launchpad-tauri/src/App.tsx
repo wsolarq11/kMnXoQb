@@ -10,6 +10,7 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { AboutDialog } from "./components/AboutDialog";
 import { StatusBar } from "./components/StatusBar";
 import { applyTheme } from "./lib/theme";
+import { windowMaterial } from "./lib/invoke";
 import { installGlobalKeys } from "./lib/keyboard";
 import { useGridPlan } from "./hooks/useGridPlan";
 import { t } from "./i18n/keys";
@@ -43,6 +44,20 @@ function App() {
     applyTheme(theme);
   }, [theme]);
 
+  // Window material (Mica/Acrylic) flips body.material so the CSS chrome
+  // turns translucent; without it the body stays opaque.
+  useEffect(() => {
+    let cancelled = false;
+    void windowMaterial().then((state) => {
+      if (!cancelled) {
+        document.body.classList.toggle("material", state !== "none");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Global keys: Esc closes dialogs, Ctrl+F focuses the search box.
   useEffect(() => {
     return installGlobalKeys(
@@ -60,7 +75,7 @@ function App() {
     ),
   );
 
-  const { ref, plan } = useGridPlan(visible.length);
+  const { ref, columns } = useGridPlan(visible.length);
 
   return (
     <main className="app">
@@ -75,10 +90,9 @@ function App() {
       <section
         ref={ref}
         className="item-grid"
-        data-scroll={plan.scroll || undefined}
         style={
-          plan.columns > 0
-            ? { gridTemplateColumns: `repeat(${plan.columns}, minmax(0, 1fr))` }
+          columns > 0
+            ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
             : undefined
         }
       >

@@ -12,6 +12,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
+  /* Fluent elevation ramp; dark theme doubles shadow opacity (see below). */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
@@ -19,20 +20,22 @@
   --ease: 0.15s ease;
   --ease-theme: 0.18s ease;
 
-  /* Light palette */
-  --bg-app: #f6f6f7;
+  /* Light palette. Contrast targets (WCAG AA): body text >= 4.5:1,
+     component borders >= 3:1, surface vs app >= 1.15:1. Verified by
+     src/lib/contrast.test.ts — change values here only if that test passes. */
+  --bg-app: #ededf0;
   --bg-surface: #ffffff;
-  --bg-surface-hover: #f0f0f3;
-  --bg-header: #f2f2f4;
+  --bg-surface-hover: #ececf0;
+  --bg-header: #ececf0;
   --bg-input: #ffffff;
-  --bg-code: #f6f6f3;
+  --bg-code: #f4f4ef;
   --bg-elevated: #ffffff;
   --fg-primary: #1f1f1f;
   --fg-secondary: #5f5f66;
-  --fg-tertiary: #8a8a92;
-  --fg-mono: #8a6d1f;
-  --border-subtle: #e5e5e9;
-  --border-strong: #cfcfd6;
+  --fg-tertiary: #6a6a74;
+  --fg-mono: #7a5f14;
+  --border-subtle: #94949d;
+  --border-strong: #83838c;
   --accent: #2f6fed;
   --accent-hover: #2456c4;
   --danger: #d13438;
@@ -42,50 +45,70 @@
 }
 
 /* Dark palette: forced by the setting via data-theme="dark", or by the
-   system when the setting is "system" (no data-theme attribute). */
+   system when the setting is "system" (no data-theme attribute).
+   Surfaces get lighter as elevation rises (M3 dark rule); fg-primary
+   keeps >= 14:1 on the darkest surface (M3 on-surface baseline). */
 :root[data-theme="dark"] {
-  --bg-app: #1b1b1f;
-  --bg-surface: #232329;
-  --bg-surface-hover: #2c2c33;
-  --bg-header: #202024;
-  --bg-input: #2a2a30;
-  --bg-code: #2a2a26;
+  color-scheme: dark;
+
+  --bg-app: #15151a;
+  --bg-surface: #1f1f24;
+  --bg-surface-hover: #26262c;
+  --bg-header: #1b1b20;
+  --bg-input: #26262c;
+  --bg-code: #26262a;
   --bg-elevated: #26262c;
-  --fg-primary: #ececf1;
+  --fg-primary: #f0f0f5;
   --fg-secondary: #a3a3ab;
-  --fg-tertiary: #71717b;
+  --fg-tertiary: #8f8f99;
   --fg-mono: #e0b95c;
-  --border-subtle: #34343c;
-  --border-strong: #45454f;
+  --border-subtle: #6b6b78;
+  --border-strong: #6f6f7a;
   --accent: #4d8aff;
   --accent-hover: #3f76e8;
   --danger: #f05555;
   --danger-hover: #ff6b6b;
   --on-accent: #0d1017;
   --on-danger: #0d1017;
+
+  /* Dark shadows double opacity so elevation stays visible (Fluent rule:
+     light 14% -> dark 28% equivalent). */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.14);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Explicit light setting: force light color-scheme (native scrollbars,
+   checkbox rendering) and keep the light palette without a dark override. */
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg-app: #1b1b1f;
-    --bg-surface: #232329;
-    --bg-surface-hover: #2c2c33;
-    --bg-header: #202024;
-    --bg-input: #2a2a30;
-    --bg-code: #2a2a26;
+    --bg-app: #15151a;
+    --bg-surface: #1f1f24;
+    --bg-surface-hover: #26262c;
+    --bg-header: #1b1b20;
+    --bg-input: #26262c;
+    --bg-code: #26262a;
     --bg-elevated: #26262c;
-    --fg-primary: #ececf1;
+    --fg-primary: #f0f0f5;
     --fg-secondary: #a3a3ab;
-    --fg-tertiary: #71717b;
+    --fg-tertiary: #8f8f99;
     --fg-mono: #e0b95c;
-    --border-subtle: #34343c;
-    --border-strong: #45454f;
+    --border-subtle: #6b6b78;
+    --border-strong: #6f6f7a;
     --accent: #4d8aff;
     --accent-hover: #3f76e8;
     --danger: #f05555;
     --danger-hover: #ff6b6b;
     --on-accent: #0d1017;
     --on-danger: #0d1017;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.14);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.28);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -96,7 +119,32 @@
 
 body {
   margin: 0;
+  background: var(--bg-app);
+}
+
+/* Window material (Mica/Acrylic) active: the Rust side applies the effect
+   and the frontend sets body.material, letting the material show through
+   translucent chrome. Without the class the body stays opaque so contrast
+   holds on systems without material support. */
+body.material {
   background: transparent;
+}
+
+body.material .app {
+  background: color-mix(in srgb, var(--bg-app) 88%, transparent);
+}
+
+body.material .header-bar,
+body.material .status-bar {
+  background: color-mix(in srgb, var(--bg-header) 80%, transparent);
+}
+
+body.material .stat-bar {
+  background: color-mix(in srgb, var(--bg-app) 80%, transparent);
+}
+
+body.material .boot-screen {
+  background: color-mix(in srgb, var(--bg-header) 80%, transparent);
 }
 
 .app {
@@ -111,19 +159,21 @@ body {
   align-items: center;
   gap: var(--space-2);
   padding: 10px var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  /* border-strong keeps the separator >= 3:1 against bg-header (1.4.11). */
+  border-bottom: 1px solid var(--border-strong);
   background: var(--bg-header);
 }
 
 .search-input {
   flex: 1;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-input);
   color: var(--fg-primary);
   outline: none;
-  transition: border-color var(--ease), box-shadow var(--ease), background-color var(--ease-theme);
+  transition: border-color var(--ease), box-shadow var(--ease), background-color var(--ease-theme),
+    color var(--ease-theme);
 }
 
 .search-input::placeholder {
@@ -142,7 +192,7 @@ body {
   padding: 4px 12px;
   font-size: 12px;
   color: var(--fg-tertiary);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-strong);
 }
 
 .stat-about {
@@ -155,7 +205,7 @@ body {
   padding: 6px 12px;
   font-size: 12px;
   color: var(--fg-secondary);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-strong);
   background: var(--bg-header);
 }
 
@@ -163,19 +213,14 @@ body {
 .item-grid {
   flex: 1;
   min-height: 0;
-  padding: 14px var(--space-4);
+  padding: 12px var(--space-4);
   display: grid;
   gap: 10px;
-  /* Fill mode: rows share the container height so every card is visible. */
-  grid-auto-rows: minmax(0, 1fr);
-  align-content: stretch;
-  overflow: hidden;
-}
-
-/* Scroll fallback: cards keep their readable size, the grid scrolls. */
-.item-grid[data-scroll] {
-  grid-auto-rows: auto;
-  align-content: start;
+  /* Fixed card size: rows stay 120px, columns come from useGridPlan's
+     inline gridTemplateColumns. Cards never stretch to fill the window,
+     so filtering or resizing changes only the column count, never the
+     card dimensions; overflow scrolls. */
+  grid-auto-rows: 120px;
   overflow-y: auto;
 }
 
@@ -200,7 +245,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 12px 16px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--bg-surface);
@@ -211,7 +256,7 @@ body {
      (verified in Chromium: hidden -> 26px, clip -> 87px natural height). */
   overflow: clip;
   transition: box-shadow var(--ease), transform var(--ease), border-color var(--ease),
-    background-color var(--ease-theme);
+    background-color var(--ease-theme), color var(--ease-theme);
 }
 
 .item-card:hover {
@@ -266,10 +311,12 @@ body {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  transition: color var(--ease-theme);
 }
 
 .danger-icon {
   color: var(--danger);
+  transition: color var(--ease-theme);
 }
 
 .card-dir {
@@ -278,6 +325,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color var(--ease-theme);
 }
 
 .card-cmd {
@@ -291,6 +339,7 @@ body {
   border-radius: var(--radius-sm);
   padding: 2px 6px;
   margin-top: 4px;
+  transition: color var(--ease-theme), background-color var(--ease-theme);
 }
 
 /* 2x2 action cluster so the card stays compact when rows shrink. */
@@ -313,7 +362,7 @@ body {
   background: transparent;
   color: var(--fg-secondary);
   cursor: pointer;
-  transition: background var(--ease), color var(--ease);
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
 }
 
 .icon-btn:hover {
@@ -343,16 +392,16 @@ body {
 .primary-btn,
 .ghost-btn,
 .danger-btn {
-  padding: 7px 16px;
+  padding: 8px 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   transition: background var(--ease), color var(--ease), box-shadow var(--ease),
-    transform 0.08s ease;
+    transform 0.08s ease, border-color var(--ease);
 }
 
 .primary-btn {
@@ -408,6 +457,7 @@ body {
   text-align: center;
   padding: 48px 0;
   color: var(--fg-tertiary);
+  transition: color var(--ease-theme);
 }
 
 .empty-state h2 {
@@ -415,6 +465,7 @@ body {
   color: var(--fg-secondary);
   font-weight: 600;
   font-size: 16px;
+  transition: color var(--ease-theme);
 }
 
 .empty-state p {
@@ -454,7 +505,7 @@ body {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px 22px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -462,7 +513,7 @@ body {
 }
 
 .modal label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--fg-secondary);
 }
 
@@ -510,7 +561,7 @@ body {
 
 .error-text {
   color: var(--danger);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .danger-warning {
@@ -518,7 +569,7 @@ body {
   align-items: center;
   gap: 6px;
   color: var(--danger);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .confirm-list {
@@ -536,7 +587,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .confirm-list code {
@@ -567,7 +618,7 @@ body {
 
 .about-text {
   color: var(--fg-secondary);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -582,7 +633,8 @@ body {
 .about-shortcuts kbd {
   display: inline-block;
   padding: 2px 6px;
-  border: 1px solid var(--border-subtle);
+  /* border-strong keeps the keycap edge >= 3:1 against bg-code. */
+  border: 1px solid var(--border-strong);
   border-bottom-width: 2px;
   border-radius: 5px;
   background: var(--bg-code);
@@ -597,6 +649,7 @@ mark.match {
   color: var(--fg-primary);
   border-radius: 3px;
   padding: 0 1px;
+  transition: background-color var(--ease-theme), color var(--ease-theme);
 }
 
 /* ============ Boot screen ============ */
@@ -629,7 +682,7 @@ mark.match {
 
 .boot-screen p {
   color: var(--fg-secondary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* ============ Theme transition ============ */
@@ -638,7 +691,8 @@ body,
 .stat-bar,
 .status-bar,
 .modal,
-.boot-screen {
+.boot-screen,
+.item-grid {
   transition: background-color var(--ease-theme), border-color var(--ease-theme),
     color var(--ease-theme);
 }

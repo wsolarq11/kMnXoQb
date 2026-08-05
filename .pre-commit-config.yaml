@@ -26,3 +26,33 @@ repos:
         entry: "python -c \"import sys,re;line=open(sys.argv[1],encoding='utf-8').readline();sys.exit(0 if re.match(r'^\\[(tauri|winui)\\]',line) else print('commit message must start with [tauri] or [winui]', file=sys.stderr) or 1)\""
         language: system
         stages: [commit-msg]
+
+  # --- Tauri 栈：Rust 格式化检查（对应远程 CI ci-tauri.yml #50） ---
+  - repo: local
+    hooks:
+      - id: cargo-fmt-check
+        name: cargo fmt --check (launchpad-tauri)
+        entry: bash -c 'cd launchpad-tauri/src-tauri && cargo fmt --check'
+        language: system
+        files: ^launchpad-tauri/src-tauri/.*\.rs$
+        pass_filenames: false
+
+  # --- Tauri 栈：Rust clippy 检查（对应远程 CI ci-tauri.yml #54） ---
+  - repo: local
+    hooks:
+      - id: cargo-clippy
+        name: cargo clippy --all-targets -D warnings (launchpad-tauri)
+        entry: bash -c 'cd launchpad-tauri/src-tauri && cargo clippy --all-targets -- -D warnings'
+        language: system
+        files: ^launchpad-tauri/src-tauri/.*\.rs$
+        pass_filenames: false
+
+  # --- C# 栈：XAML binding-mode 门禁（对应远程 CI ci.yml #45） ---
+  - repo: local
+    hooks:
+      - id: xaml-binding-mode
+        name: XAML binding-mode gate (launchpad)
+        entry: pwsh -ExecutionPolicy Bypass -File scripts/xaml-binding-mode-gate.ps1
+        language: system
+        files: ^launchpad/src/.*\.xaml$
+        pass_filenames: false

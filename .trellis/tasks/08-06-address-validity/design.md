@@ -29,7 +29,7 @@ pub fn check_directories(paths: Vec<String>) -> Vec<bool> {
 }
 ```
 
-注意：`check_directory` 返回 `true` 当路径为空（豁免）或不存在（视为有效）。前端使用 `dirStatus[id] === false` 判断。
+注意：`check_directory` 返回 `true` 当路径为空（豁免）或目录存在（有效）。前端使用 `dirStatus[id] === false` 判断。
 
 ### launch 修改
 

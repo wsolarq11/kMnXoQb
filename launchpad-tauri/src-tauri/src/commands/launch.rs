@@ -61,8 +61,9 @@ pub fn launch_item_impl(state: &AppState, id: String) -> Result<(), AppError> {
     let item = find(state, &id)?;
 
     // Pre-check directory existence before attempting spawn (catches stale
-    // configs early, avoids the raw spawn error path).
-    if !item.directory.is_empty() && !std::path::Path::new(&item.directory).exists() {
+    // configs early, avoids the raw spawn error path). Whitespace-only paths
+    // count as empty, matching check_directory's exemption.
+    if !item.directory.trim().is_empty() && !std::path::Path::new(&item.directory).exists() {
         return Err(AppError::WorkingDirectoryMissing(item.directory.clone()));
     }
 
@@ -100,10 +101,13 @@ pub fn launch_many_impl(state: &AppState, ids: Vec<String>) -> Result<LaunchMany
 
     // Pre-check directory existence for every item before spawning. Items
     // with a missing directory are counted as failures and never launched.
+    // Whitespace-only paths count as empty (matching check_directory).
     let dir_ok_indices: Vec<(usize, &LaunchItem)> = selected
         .iter()
         .enumerate()
-        .filter(|(_, i)| i.directory.is_empty() || std::path::Path::new(&i.directory).exists())
+        .filter(|(_, i)| {
+            i.directory.trim().is_empty() || std::path::Path::new(&i.directory).exists()
+        })
         .collect();
     let dir_ok: Vec<LaunchItem> = dir_ok_indices
         .iter()
@@ -112,7 +116,7 @@ pub fn launch_many_impl(state: &AppState, ids: Vec<String>) -> Result<LaunchMany
     let dir_fail_indices: Vec<usize> = (0..selected.len())
         .filter(|i| {
             let item = &selected[*i];
-            !item.directory.is_empty() && !std::path::Path::new(&item.directory).exists()
+            !item.directory.trim().is_empty() && !std::path::Path::new(&item.directory).exists()
         })
         .collect();
 

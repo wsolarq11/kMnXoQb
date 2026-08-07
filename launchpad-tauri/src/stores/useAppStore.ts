@@ -201,6 +201,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await api.deleteItem(id);
       await get().refreshItems();
+      // Drop the deleted id's directory status so the map never accumulates
+      // stale keys (items are the render/launch driver, but keep it tidy).
+      set((s) => {
+        if (!(id in s.dirStatus)) return s;
+        const dirStatus = { ...s.dirStatus };
+        delete dirStatus[id];
+        return { dirStatus };
+      });
       get().setStatusAutoClear({ key: "StatusDeleted" });
       return true;
     } catch (e) {
@@ -280,10 +288,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ pendingConfirm: { kind: "batch", ids: launchable, confirmIds } });
         return;
       }
-      await runLaunchMany(launchable, set);
-      if (blocked.length > 0) {
-        set({ status: { key: "ValidationDirectoryMissing" } });
-      }
+      // blocked items ride into the summary as failures (single message).
+      await runLaunchMany(launchable, set, blocked.length);
     } catch (e) {
       set({ status: failStatus("StatusLaunchFailed", e) });
     }
@@ -340,18 +346,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 async function runLaunchMany(
   ids: string[],
   set: (partial: Partial<AppState>) => void,
+  blockedCount = 0,
 ): Promise<void> {
   try {
     const result = await api.launchMany(ids);
     const settings = await api.getSettings();
     set({ settings });
-    const failed = result.failed_indexes.length;
+    // Directory-blocked items count toward the total and the failed count
+    // so the summary never loses them (single message, no overwrite).
+    const total = ids.length + blockedCount;
+    const failed = result.failed_indexes.length + blockedCount;
     useAppStore.getState().setStatusAutoClear(
       failed === 0
         ? { key: "StatusLaunchedN", args: [result.succeeded] }
         : {
             key: "StatusLaunchedPartial",
-            args: [result.succeeded, ids.length, failed],
+            args: [result.succeeded, total, failed],
           },
     );
   } catch (e) {

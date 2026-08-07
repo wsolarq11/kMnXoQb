@@ -189,9 +189,12 @@ fn launch_many_skips_items_with_missing_directory() {
         input("a", &missing.display().to_string(), "snow"),
     )
     .expect("create a (missing dir)");
+    // `exit` self-terminates: plan_windows wraps commands as
+    // `pwsh -NoExit -Command "cd ...; <cmd>"` — a bare `pwsh.exe` would enter
+    // interactive mode and leak a permanent process + window per test run.
     let b = commands::items::create_item_impl(
         &state,
-        input("b", &existing.display().to_string(), "pwsh.exe"),
+        input("b", &existing.display().to_string(), "exit"),
     )
     .expect("create b (valid dir)");
 

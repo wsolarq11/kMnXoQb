@@ -63,5 +63,6 @@ list_items / create_item / update_item / delete_item / move_item / set_select / 
 
 - 单测：core 内联 `#[cfg(test)]` + `tests/`（config_store/json_round_trip/spawner_contract/terminal_contract）。
 - 契约测试真实 spawn pwsh/cmd/wt（无 wt 跳过）；目录用例覆盖空格/引号/分号/&/中文。
+- **警告：契约测试会弹出真实终端窗口**（spawner_contract / terminal_contract 设计如此，用于验证真实进程行为）。跑 `cargo test` 时桌面会短暂弹出 pwsh/cmd/wt 窗口——这是预期测试行为，**不是应用 bug**。循环复现 flaky 测试（如 `for` 循环反复跑 cargo test）会持续弹窗，可能被用户误判为"应用不停创建终端"；复现 flaky 时优先用 `--test <name>` 单测过滤，并在跑测试前告知用户会有窗口弹出。
 - 前端 vitest：键表完整性（62 键 × 2 语言）、danger 工具、store 流转（mock invoke）、grid 布局算法。
 - 提交前：`cargo test` + `npx vitest run` + `npx tsc --noEmit` 全绿。

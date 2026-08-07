@@ -31,6 +31,7 @@ describe("useAppStore", () => {
       deleteTarget: null,
       aboutOpen: false,
       lastLaunchRef: { id: "", at: 0 },
+      dirStatus: {},
     });
   });
 
@@ -39,6 +40,7 @@ describe("useAppStore", () => {
       if (cmd === "get_settings") return { confirm_enabled: true, theme: "dark", language: "auto", launch_history: [] };
       if (cmd === "get_language") return { effective: "zh-CN", setting: "auto" };
       if (cmd === "list_items") return { items: [item("a")], recovery_note: null, error: null };
+      if (cmd === "check_directories") return [true];
       throw new Error("unexpected " + cmd);
     });
 
@@ -48,6 +50,7 @@ describe("useAppStore", () => {
     expect(s.language).toBe("zh-CN");
     expect(s.settings.theme).toBe("dark");
     expect(s.items).toHaveLength(1);
+    expect(s.dirStatus).toEqual({ a: true });
   });
 
   it("recovery note surfaces as status", async () => {
@@ -65,6 +68,7 @@ describe("useAppStore", () => {
     invoke.mockImplementation(async (cmd: string) => {
       if (cmd === "create_item") return item("new");
       if (cmd === "list_items") return { items: [item("new")], recovery_note: null, error: null };
+      if (cmd === "check_directories") return [true];
       throw new Error("unexpected " + cmd);
     });
 
@@ -79,6 +83,36 @@ describe("useAppStore", () => {
     expect(ok).toBe(true);
     expect(useAppStore.getState().status).toEqual({ key: "StatusAdded" });
     expect(useAppStore.getState().items).toHaveLength(1);
+  });
+
+  it("launchOne blocked when directory is missing", async () => {
+    useAppStore.setState({ items: [item("a")], dirStatus: { a: false } });
+
+    await useAppStore.getState().launchOne("a");
+
+    // No confirm, no launch call — just the directory-missing status.
+    expect(useAppStore.getState().pendingConfirm).toBeNull();
+    expect(useAppStore.getState().status?.key).toBe("ValidationDirectoryMissing");
+    expect(invoke).not.toHaveBeenCalledWith("needs_confirm", expect.anything());
+  });
+
+  it("launchSelected drops items with missing directories", async () => {
+    useAppStore.setState({
+      items: [item("a"), item("b")],
+      dirStatus: { a: true, b: false },
+    });
+    useAppStore.setState({ items: useAppStore.getState().items.map((i) => ({ ...i, selected: true })) });
+    invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "needs_confirm") return { needs_confirm: false, danger_key: null };
+      if (cmd === "launch_many") return { succeeded: 1, failed_indexes: [] };
+      if (cmd === "get_settings") return { confirm_enabled: false, theme: "system", language: "auto", launch_history: [] };
+      throw new Error("unexpected " + cmd);
+    });
+
+    await useAppStore.getState().launchSelected();
+
+    // Only the valid item was launched.
+    expect(invoke).toHaveBeenCalledWith("launch_many", { ids: ["a"] });
   });
 
   it("failed create surfaces save-failed status", async () => {

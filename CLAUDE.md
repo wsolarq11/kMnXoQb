@@ -12,16 +12,17 @@ Launchpad：Windows 原生启动器，用统一界面启动 AI CLI 工具（snow
 
 | 工作项 | 状态 | 证据 | 更新日期 |
 |---|---|---|---|
+| W6 本地门禁与远程CI一致性保障 | 已完成 | 本地门禁覆盖远程CI 14项检查（pre-commit: cargo fmt/clippy/XAML gate; local-ci.ps1: 全量构建/测试/安全检查）；审计脚本 `scripts/audit-ci-parity.ps1` 确认100%覆盖 | 2026-08-03 |
 | W2 新栈 CI 门禁（launchpad-tauri） | 已完成 | `.github/workflows/ci-tauri.yml` 全绿（run 30820279223 success）；本地 cargo 125 例 + vitest 35 例全绿 | 2026-08-03 |
 | W1 人工场景走查 | 未开始（清单已就绪） | `08-03-r4-w1-walkthrough/walkthrough.md`（14 场景） | 2026-08-03 |
 | W3 干净环境安装实测 | 进行中（zip/便携双轨 PASS，MSI 部分待用户） | `08-03-r4-w3-install-validation/install-form-validation.md`（CI artifact 三件套 + 便携双轨正负对照验证） | 2026-08-03 |
 | W4 双栈退役条件决策 | 已完成 | `archive/2026-08/08-03-r4-w4-retirement/retirement-criteria.md`（触发条件/归档步骤/处置，提交 f334124） | 2026-08-03 |
 | W5 状态真源与文档同步 | 已完成 | 本矩阵 + commit-msg hook（提交 e70254c，无前缀拒绝/带前缀通过实测） | 2026-08-03 |
 
-## 常用命令（均在 `launchpad/` 目录下执行）
+## 常用命令
 
 ```bash
-# 构建（Release）
+# 构建（Release）—— launchpad/ 目录下
 dotnet build src/launchpad/launchpad.csproj --configuration Release
 
 # 单元测试 + 架构测试（ArchUnitNET），提交前必须全绿
@@ -35,8 +36,49 @@ powershell -ExecutionPolicy Bypass -File publish.ps1
 ```
 
 - 依赖版本由 `Directory.Packages.props`（CPM）集中管理；恢复图锁在 `packages.lock.json`（入库，CI 缓存键）。
-- pre-commit hooks（`.pre-commit-config.yaml`）：行尾 CRLF 强制、尾随空白、大文件阻断。
-- CI（`.github/workflows/ci.yml`）额外执行 XAML binding-mode 门禁：每个 Page/UserControl/ContentDialog 根元素必须声明 `x:DefaultBindMode`（x:Bind 默认 OneTime 是 BUG-1/2/3 类缺陷的根源）。
+
+## 本地门禁流程（强制约束：本地全绿 → 远程必全绿）
+
+本地门禁是远程 CI 的前置过滤层。远程 CI 不可修改，本地门禁适配远程 CI。
+
+### 分层门禁体系
+
+| 层 | 触发时机 | 覆盖内容 | 命令 |
+|---|---|---|---|
+| Layer 1: Pre-commit | `git commit` | cargo fmt --check, cargo clippy, XAML binding-mode gate, 文件规范检查, 提交信息格式 | `pre-commit run`（自动执行） |
+| Layer 2: Local CI | `git push` 前 | 全量构建 + 测试 + 安全检查（等价远程 CI） | `pwsh -ExecutionPolicy Bypass -File scripts/local-ci.ps1` |
+
+### Pre-commit 钩子（`.pre-commit-config.yaml`）
+
+覆盖快速检查，仅修改相关文件时触发：
+- 行尾 CRLF 强制、尾随空白、大文件阻断、合并冲突检查
+- **Tauri 栈**：`cargo fmt --check`（修改 .rs 文件时）、`cargo clippy --all-targets -D warnings`
+- **C# 栈**：XAML binding-mode 门禁——每个 Page/UserControl/ContentDialog 根元素必须声明 `x:DefaultBindMode`
+- 提交信息必须以 `[tauri]` 或 `[winui]` 开头
+
+### Local CI 脚本（`scripts/local-ci.ps1`）
+
+推送前必须运行，等价远程 CI 全量检查：
+```bash
+# 全量检查（两个栈）
+pwsh -ExecutionPolicy Bypass -File scripts/local-ci.ps1
+
+# 仅 Tauri 栈
+pwsh -ExecutionPolicy Bypass -File scripts/local-ci.ps1 -Stack tauri
+
+# 仅 C# 栈
+pwsh -ExecutionPolicy Bypass -File scripts/local-ci.ps1 -Stack csharp
+
+# 跳过构建（仅运行测试和检查）
+pwsh -ExecutionPolicy Bypass -File scripts/local-ci.ps1 -SkipBuild
+```
+
+### 约束规则
+
+1. **远程不可变**：不能修改 `.github/workflows/ci.yml` 或 `ci-tauri.yml` 来适应本地
+2. **本地适配远程**：远程 CI 新增检查项时，本地门禁必须同步更新（运行 `scripts/audit-ci-parity.ps1` 验证覆盖）
+3. **本地全绿 → 远程必全绿**：如果本地 CI 脚本通过而远程 CI 失败，说明本地门禁有遗漏，需立即修复本地门禁
+4. **跳过规则**：Pre-commit 钩子可用 `SKIP=<hook-id> git commit` 临时跳过，但推送前必须通过本地 CI 脚本补上；本地 CI 脚本不允许跳过失败步骤强制推送
 
 ## 架构：Clean Architecture + Functional Core / Imperative Shell
 
@@ -94,6 +136,7 @@ launchpad/
 - 架构测试在 `launchpad.Core.Tests/ArchitectureTests.cs`（ArchUnitNET）；`SourceFileRuleTests` 断言 UI 源码不引用 Infrastructure（App.xaml.cs 白名单）。
 - 快照测试用 Verify.Xunit（`*.verified.txt`），行为变更需审核后更新快照。
 - 集成测试用 `WtFact` 特性标记需要 Windows Terminal 的用例。
+- **契约测试会弹出真实终端窗口**（Tauri 栈 spawner/terminal 契约测试真实 spawn pwsh/cmd/wt）——这是预期测试行为而非应用 bug；循环复现 flaky 测试会持续弹窗，可能被用户误判为"应用不停创建终端"。跑测试前告知用户会有窗口弹出，复现 flaky 时用 `cargo test --test <name>` 缩小范围。
 
 ## 规范文档（Trellis）
 

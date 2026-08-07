@@ -12,7 +12,9 @@ interface Props {
 }
 
 export function ItemCard({ item, index, total, query }: Props) {
-  const { language, setSelect, moveItem, askDelete, openEdit, launchOne } = useAppStore();
+  const { language, setSelect, moveItem, askDelete, openEdit, launchOne, dirStatus } =
+    useAppStore();
+  const directoryMissing = dirStatus[item.id] === false;
   const canMoveUp = index > 0;
   const canMoveDown = index < total - 1;
 
@@ -47,10 +49,16 @@ export function ItemCard({ item, index, total, query }: Props) {
       </label>
       <div className="card-main">
         <div className="card-title">
-          {highlight(item.name, query)}
+          {/* Span wrapper: ellipsis needs a single text flex item; highlight
+              may return a Fragment (query match), which would otherwise
+              render as several anonymous items and never truncate. */}
+          <span className="card-title-text">{highlight(item.name, query)}</span>
           {dangerous && <AlertTriangle size={14} className="danger-icon" />}
         </div>
         <div className="card-dir">{highlight(item.directory, query)}</div>
+        {directoryMissing && (
+          <div className="card-dir-status">{t("ValidationDirectoryMissing", language)}</div>
+        )}
         <code className="card-cmd">{highlight(item.command, query)}</code>
       </div>
       <div className="card-actions" onClick={(e) => e.stopPropagation()}>

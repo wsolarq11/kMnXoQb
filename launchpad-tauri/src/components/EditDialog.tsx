@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FolderOpen, AlertTriangle } from "lucide-react";
 import { useAppStore } from "../stores/useAppStore";
 import { t } from "../i18n/keys";
-import { pickDirectory } from "../lib/invoke";
+import { checkDirectory, pickDirectory } from "../lib/invoke";
 import type { LaunchItem } from "../types";
 
 interface Props {
@@ -19,6 +19,7 @@ export function EditDialog({ item }: Props) {
   const [confirm, setConfirm] = useState(item?.confirm ?? true);
   const [terminal, setTerminal] = useState(item?.terminal ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [dirWarning, setDirWarning] = useState<string | null>(null);
 
   const dangerous =
     command.includes("--dangerously") ||
@@ -40,9 +41,18 @@ export function EditDialog({ item }: Props) {
       setError(t("ValidationCommandRequired", language));
       return;
     }
+    // Directory existence check: warn but never block the save — the user
+    // may want to persist the entry now and fix the path later (the card
+    // shows the gray status until then, and launch is blocked).
+    const dir = directory.trim();
+    if (dir && !(await checkDirectory(dir))) {
+      setDirWarning(t("ValidationDirectoryMissing", language));
+    } else {
+      setDirWarning(null);
+    }
     const input = {
       name: name.trim(),
-      directory: directory.trim(),
+      directory: dir,
       command: command.trim(),
       confirm,
       terminal: terminal.trim() || null,
@@ -93,6 +103,7 @@ export function EditDialog({ item }: Props) {
         </label>
 
         {error && <p className="error-text">{error}</p>}
+        {dirWarning && <p className="error-text">{dirWarning}</p>}
 
         <div className="modal-actions">
           <button type="submit" className="primary-btn">

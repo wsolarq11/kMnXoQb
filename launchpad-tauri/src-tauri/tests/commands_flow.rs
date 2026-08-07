@@ -179,6 +179,38 @@ fn launch_many_all_failing_returns_zero_success() {
 }
 
 #[test]
+fn launch_many_skips_items_with_missing_directory() {
+    let (state, _) = test_state();
+    // One item with a missing directory, one with an existing one (temp).
+    let missing = std::env::temp_dir().join("launchpad-definitely-missing-dir-many");
+    let existing = std::env::temp_dir();
+    let a = commands::items::create_item_impl(
+        &state,
+        input("a", &missing.display().to_string(), "snow"),
+    )
+    .expect("create a (missing dir)");
+    let b = commands::items::create_item_impl(
+        &state,
+        input("b", &existing.display().to_string(), "pwsh.exe"),
+    )
+    .expect("create b (valid dir)");
+
+    let result =
+        commands::launch::launch_many_impl(&state, vec![a.id.clone(), b.id.clone()]).expect("many");
+    // a is blocked by the directory pre-check; b launches.
+    assert_eq!(1, result.succeeded);
+    assert!(
+        result.failed_indexes.contains(&0),
+        "a must be in failed set"
+    );
+
+    // Selection cleared after batch.
+    let after = commands::items::list_items_impl(&state);
+    assert!(after.items.iter().all(|i| !i.selected));
+    let _ = (a.id, b.id);
+}
+
+#[test]
 fn settings_cycles_theme_and_language() {
     let (state, _) = test_state();
 

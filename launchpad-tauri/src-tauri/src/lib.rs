@@ -119,6 +119,8 @@ pub fn run() {
             commands::misc::save_window_state,
             commands::misc::load_window_state,
             commands::misc::window_material,
+            commands::misc::check_directory,
+            commands::misc::check_directories,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -59,6 +59,13 @@ pub fn launch_item(state: State<'_, AppState>, id: String) -> Result<(), AppErro
 
 pub fn launch_item_impl(state: &AppState, id: String) -> Result<(), AppError> {
     let item = find(state, &id)?;
+
+    // Pre-check directory existence before attempting spawn (catches stale
+    // configs early, avoids the raw spawn error path).
+    if !item.directory.is_empty() && !std::path::Path::new(&item.directory).exists() {
+        return Err(AppError::WorkingDirectoryMissing(item.directory.clone()));
+    }
+
     state
         .launch
         .try_launch(&item, |dir| std::path::Path::new(dir).exists())?;
@@ -91,17 +98,52 @@ pub fn launch_many_impl(state: &AppState, ids: Vec<String>) -> Result<LaunchMany
         });
     }
 
-    let (succeeded, failed_indexes) = state.launch.launch_many(&selected);
-    let failed_set: HashSet<usize> = failed_indexes.iter().copied().collect();
+    // Pre-check directory existence for every item before spawning. Items
+    // with a missing directory are counted as failures and never launched.
+    let dir_ok_indices: Vec<(usize, &LaunchItem)> = selected
+        .iter()
+        .enumerate()
+        .filter(|(_, i)| i.directory.is_empty() || std::path::Path::new(&i.directory).exists())
+        .collect();
+    let dir_ok: Vec<LaunchItem> = dir_ok_indices
+        .iter()
+        .map(|(_, item)| (*item).clone())
+        .collect();
+    let dir_fail_indices: Vec<usize> = (0..selected.len())
+        .filter(|i| {
+            let item = &selected[*i];
+            !item.directory.is_empty() && !std::path::Path::new(&item.directory).exists()
+        })
+        .collect();
+
+    // Launch the OK subset; map their result back to the original index.
+    let (succeeded, failed_indexes) = state.launch.launch_many(&dir_ok);
+    // failed_indexes are indexes into dir_ok — map back to selected indices.
+    let launch_fail_original: Vec<usize> = failed_indexes
+        .iter()
+        .map(|&fi| dir_ok_indices[fi].0)
+        .collect();
+
+    // Combine directory-blocked + launch-failed items into one failed set.
+    let all_failed: HashSet<usize> = dir_fail_indices
+        .iter()
+        .chain(launch_fail_original.iter())
+        .copied()
+        .collect();
 
     let settings = state.settings.load()?;
-    let updated_settings = core_settings::push_history_many(&settings, &selected, &failed_set);
+    let updated_settings = core_settings::push_history_many(&settings, &selected, &all_failed);
     state.settings.save(&updated_settings)?;
 
     // Legacy: clear the selection after a batch launch so the same terminals
     // cannot be re-fired by a second click.
     let cleared = items::clear_selection(&all);
     state.items.save_items(&cleared)?;
+
+    // Sort back to index order: the contract is ascending original indices
+    // (HashSet iteration order is random, which flaked the integration test).
+    let mut failed_indexes: Vec<usize> = all_failed.into_iter().collect();
+    failed_indexes.sort_unstable();
 
     Ok(LaunchManyResult {
         succeeded,

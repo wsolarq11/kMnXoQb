@@ -8,6 +8,68 @@ use crate::core::i18n::{self, AppLanguage};
 use crate::infra::locale;
 use crate::state::AppState;
 
+/// Returns true when the path is empty (exempt) or the directory exists.
+/// Frontend uses this to mark cards with missing directories.
+#[tauri::command]
+pub fn check_directory(path: String) -> bool {
+    check_directory_impl(&path)
+}
+
+/// Batch version: one IPC call for all items at startup.
+#[tauri::command]
+pub fn check_directories(paths: Vec<String>) -> Vec<bool> {
+    paths.iter().map(|p| check_directory_impl(p)).collect()
+}
+
+fn check_directory_impl(path: &str) -> bool {
+    // Whitespace-only paths count as empty (the edit dialog trims before
+    // saving; hand-edited configs may not).
+    path.trim().is_empty() || std::path::Path::new(path).exists()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_path_is_exempt() {
+        assert!(check_directory_impl(""));
+        assert!(check_directory_impl("   "));
+    }
+
+    #[test]
+    fn existing_directory_is_valid() {
+        // std::env::temp_dir() always exists on this platform.
+        let temp = std::env::temp_dir().display().to_string();
+        assert!(check_directory_impl(&temp));
+    }
+
+    #[test]
+    fn missing_directory_is_invalid() {
+        let missing = std::env::temp_dir()
+            .join("launchpad-definitely-missing-dir-check")
+            .display()
+            .to_string();
+        assert!(!check_directory_impl(&missing));
+    }
+
+    #[test]
+    fn batch_matches_per_item_results() {
+        let paths = vec![
+            String::new(),
+            std::env::temp_dir().display().to_string(),
+            std::env::temp_dir()
+                .join("launchpad-definitely-missing-dir-batch")
+                .display()
+                .to_string(),
+        ];
+        let expected: Vec<bool> = paths.iter().map(|p| check_directory_impl(p)).collect();
+        let batch = check_directories(paths);
+        assert_eq!(expected, batch);
+        assert_eq!(3, batch.len());
+    }
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedLanguage {

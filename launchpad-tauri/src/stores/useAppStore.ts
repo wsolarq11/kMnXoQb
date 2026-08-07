@@ -45,9 +45,13 @@ interface AppState {
   aboutOpen: boolean;
   /** Click-launch debounce state (double click must not launch twice). */
   lastLaunchRef: { id: string; at: number };
+  /** Per-item directory existence (itemId -> exists). Ephemeral: refreshed
+      on init and after saves; never persisted (filesystem is the truth). */
+  dirStatus: Record<string, boolean>;
 
   init: () => Promise<void>;
   refreshItems: () => Promise<void>;
+  checkAllDirectories: () => Promise<void>;
   setSearchQuery: (q: string) => void;
   setStatus: (m: StatusMessage | null) => void;
   setStatusAutoClear: (m: StatusMessage | null) => void;
@@ -108,6 +112,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteTarget: null,
   aboutOpen: false,
   lastLaunchRef: { id: "", at: 0 },
+  dirStatus: {},
 
   init: async () => {
     set({ loading: true });
@@ -116,11 +121,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       const language = await api.getLanguage();
       set({ settings, language: language.effective });
       await get().refreshItems();
+      await get().checkAllDirectories();
     } catch (e) {
       set({ status: failStatus("StatusConfigError", e) });
     } finally {
       set({ loading: false });
     }
+  },
+
+  checkAllDirectories: async () => {
+    const items = get().items;
+    const paths = items.map((i) => i.directory);
+    const results = await api.checkDirectories(paths);
+    const dirStatus: Record<string, boolean> = {};
+    items.forEach((item, i) => {
+      dirStatus[item.id] = results[i] ?? true;
+    });
+    set({ dirStatus });
   },
 
   refreshItems: async () => {
@@ -158,6 +175,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await api.createItem(input);
       await get().refreshItems();
+      await get().checkAllDirectories();
       get().setStatusAutoClear({ key: "StatusAdded" });
       return true;
     } catch (e) {
@@ -170,6 +188,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await api.updateItem(id, input);
       await get().refreshItems();
+      await get().checkAllDirectories();
       get().setStatusAutoClear({ key: "StatusUpdated" });
       return true;
     } catch (e) {
@@ -216,6 +235,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const now = Date.now();
     if (get().lastLaunchRef.id === id && now - get().lastLaunchRef.at < 500) return;
     set({ lastLaunchRef: { id, at: now } });
+    // Directory pre-check: a stale config (directory deleted/moved) never
+    // spawns; the card already shows the gray status text.
+    if (get().dirStatus[id] === false) {
+      set({ status: { key: "ValidationDirectoryMissing" } });
+      return;
+    }
     try {
       const info: ConfirmInfo = await api.needsConfirm(id);
       if (info.needs_confirm) {
@@ -236,17 +261,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ status: null });
       return;
     }
+    // Directory pre-check: drop items with missing directories from the
+    // batch; the Rust side also rejects them, this just skips the attempt.
+    const dirStatus = get().dirStatus;
+    const blocked = selected.filter((id) => dirStatus[id] === false);
+    const launchable = selected.filter((id) => dirStatus[id] !== false);
+    if (launchable.length === 0) {
+      set({ status: { key: "ValidationDirectoryMissing" } });
+      return;
+    }
     try {
       const confirmIds: string[] = [];
-      for (const id of selected) {
+      for (const id of launchable) {
         const info = await api.needsConfirm(id);
         if (info.needs_confirm) confirmIds.push(id);
       }
       if (confirmIds.length > 0) {
-        set({ pendingConfirm: { kind: "batch", ids: selected, confirmIds } });
+        set({ pendingConfirm: { kind: "batch", ids: launchable, confirmIds } });
         return;
       }
-      await runLaunchMany(selected, set);
+      await runLaunchMany(launchable, set);
+      if (blocked.length > 0) {
+        set({ status: { key: "ValidationDirectoryMissing" } });
+      }
     } catch (e) {
       set({ status: failStatus("StatusLaunchFailed", e) });
     }

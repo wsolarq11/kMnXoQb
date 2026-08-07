@@ -12,9 +12,17 @@
 
 ## 命令面（前端经 lib/invoke.ts 调用，禁止散落 invoke）
 
-list_items / create_item / update_item / delete_item / move_item / set_select / toggle_select_all / needs_confirm / launch_item / launch_many / get_settings / toggle_theme / toggle_language / set_confirm_enabled / get_language / pick_directory / save_window_state / load_window_state / window_material。
+list_items / create_item / update_item / delete_item / move_item / set_select / toggle_select_all / needs_confirm / launch_item / launch_many / get_settings / toggle_theme / toggle_language / set_confirm_enabled / get_language / pick_directory / save_window_state / load_window_state / window_material / check_directory / check_directories。
 
 `window_material` 返回 `"mica" | "acrylic" | "none"`（按 OS build 号判定，无副作用），前端据此翻转 `body.material` 类切换半透明 chrome（契约见下方视觉规范）。
+
+## 地址有效状态（2026-08-07 系统化处理，契约）
+
+- **命令**：`check_directory(path: String) -> bool`（`Path::exists`，**空白路径豁免**返回 true——trim 后为空视为无目录可查）；`check_directories(paths: Vec<String>) -> Vec<bool>`（批量，单次 IPC，返回顺序与输入一致）。
+- **前端生命周期**：`store.dirStatus: Record<itemId, boolean>` 为**运行时快照，不持久化**——init 批量扫描、createItem/updateItem 保存后刷新、deleteItem 清理该键；moveItem/setSelect 等不改目录的操作不刷新。
+- **启动拒止双保险**：前端 `launchOne`/`launchSelected` 按 dirStatus 预检（false → 状态栏 `ValidationDirectoryMissing`，不 spawn）；Rust `launch_item`/`launch_many` 前置检查是**唯一真源**（前端 stale-true 时 Rust 兜底返回 `WorkingDirectoryMissing`）。`launch_many` 对失效项不 spawn、计入失败集（返回索引升序——**不得改为 HashSet 无序收集**，曾致集成测试间歇失败）。
+- **边界语义**：目录失效的视觉标记是卡片灰色文字（`ValidationDirectoryMissing` 键），与危险命令红色感叹号**互不干扰**；stale-false 误拒（目录重建后卡片仍灰直到下次刷新）是有意取舍（design.md 风险节声明）。
+- **批量消息**：`launchSelected` 部分被挡时，被挡项经 `runLaunchMany(ids, set, blockedCount)` 合并进 `StatusLaunchedPartial` 的失败计数（不得用独立状态覆盖汇总消息）。
 
 ## 发布
 

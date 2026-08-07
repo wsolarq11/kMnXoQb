@@ -136,7 +136,7 @@ launchpad/
 - 架构测试在 `launchpad.Core.Tests/ArchitectureTests.cs`（ArchUnitNET）；`SourceFileRuleTests` 断言 UI 源码不引用 Infrastructure（App.xaml.cs 白名单）。
 - 快照测试用 Verify.Xunit（`*.verified.txt`），行为变更需审核后更新快照。
 - 集成测试用 `WtFact` 特性标记需要 Windows Terminal 的用例。
-- **契约测试会弹出真实终端窗口**（Tauri 栈 spawner/terminal 契约测试真实 spawn pwsh/cmd/wt）——这是预期测试行为而非应用 bug；循环复现 flaky 测试会持续弹窗，可能被用户误判为"应用不停创建终端"。跑测试前告知用户会有窗口弹出，复现 flaky 时用 `cargo test --test <name>` 缩小范围。
+- **契约测试会弹出真实终端窗口**（Tauri 栈 spawner/terminal 契约测试真实 spawn pwsh/cmd/wt）——这是预期测试行为而非应用 bug；循环复现 flaky 测试会持续弹窗，可能被用户误判为"应用不停创建终端"。跑测试前告知用户会有窗口弹出，复现 flaky 时用 `cargo test --test <name>` 缩小范围。**集成测试 spawn 的命令必须自终止**（裸 `pwsh.exe`/`cmd` 会被 `plan_windows` 的 `-NoExit` 包装成永久挂起的交互进程，每次测试泄漏 2 进程+2 窗口）；新增真实 spawn 测试前先确认包装后的命令会退出，用 `tasklist | findstr pwsh` 前后对比进程数判定泄漏（延迟退出几十秒是正常的）。
 
 ## 规范文档（Trellis）
 

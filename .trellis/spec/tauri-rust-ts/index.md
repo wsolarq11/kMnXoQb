@@ -64,5 +64,6 @@ list_items / create_item / update_item / delete_item / move_item / set_select / 
 - 单测：core 内联 `#[cfg(test)]` + `tests/`（config_store/json_round_trip/spawner_contract/terminal_contract）。
 - 契约测试真实 spawn pwsh/cmd/wt（无 wt 跳过）；目录用例覆盖空格/引号/分号/&/中文。
 - **警告：契约测试会弹出真实终端窗口**（spawner_contract / terminal_contract 设计如此，用于验证真实进程行为）。跑 `cargo test` 时桌面会短暂弹出 pwsh/cmd/wt 窗口——这是预期测试行为，**不是应用 bug**。循环复现 flaky 测试（如 `for` 循环反复跑 cargo test）会持续弹窗，可能被用户误判为"应用不停创建终端"；复现 flaky 时优先用 `--test <name>` 单测过滤，并在跑测试前告知用户会有窗口弹出。
+- **集成测试 spawn 的命令必须自终止**：`plan_windows` 把条目命令包装为 `pwsh -NoExit -Command "cd ...; <cmd>"`（wt 分支同理）——若 `<cmd>` 是裸 `pwsh.exe`/`cmd` 等交互式 shell，会永久挂起，**每次 cargo test 泄漏 2 进程 + 2 桌面窗口**（曾导致用户误判"应用不停创建终端"，实测累积 20 个孤儿进程）。成功路径的测试命令一律用自终止命令（`exit`、`Write-Output ...` 等）；新增任何真实 spawn 的集成测试前，先确认包装后的命令会退出。判定泄漏的方法：跑测试前后对比 `tasklist | findstr pwsh` 进程数，**持续累积**才是泄漏；pwsh 冷启动慢、被 kill 后延迟几十秒退出是正常现象，延迟退出 ≠ 泄漏。
 - 前端 vitest：键表完整性（62 键 × 2 语言）、danger 工具、store 流转（mock invoke）、grid 布局算法。
 - 提交前：`cargo test` + `npx vitest run` + `npx tsc --noEmit` 全绿。
